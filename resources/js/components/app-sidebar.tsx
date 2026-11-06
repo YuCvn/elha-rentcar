@@ -6,7 +6,6 @@ import {
     LayoutGrid,
     Mail,
     Phone,
-    Sparkles,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -59,11 +58,6 @@ export function AppSidebar() {
                 icon: CalendarCheck2,
             },
             {
-                title: 'Services',
-                href: '/#services',
-                icon: Sparkles,
-            },
-            {
                 title: 'Pengguna',
                 href: '/users',
                 icon: Users,
@@ -86,11 +80,6 @@ export function AppSidebar() {
                 href: '/bookings',
                 icon: CalendarCheck2,
             },
-            {
-                title: 'Services',
-                href: '/#services',
-                icon: Sparkles,
-            },
         ];
     } else {
         // Admin Operasional
@@ -109,11 +98,6 @@ export function AppSidebar() {
                 title: 'Booking',
                 href: '/bookings',
                 icon: CalendarCheck2,
-            },
-            {
-                title: 'Services',
-                href: '/#services',
-                icon: Sparkles,
             },
         ];
     }
