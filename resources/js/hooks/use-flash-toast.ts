@@ -1,28 +1,34 @@
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import type { FlashToast } from '@/types/ui';
 
 export function useFlashToast(): void {
-    const page = usePage<{ flash?: { toast?: FlashToast } }>();
-    const flashToast = page.props.flash?.toast;
-
     useEffect(() => {
-        if (flashToast) {
-            const duration = 1500;
-            if (flashToast.type === 'error') {
-                toast.error(flashToast.message, { duration });
-            } else if (flashToast.type === 'success') {
-                toast.success(flashToast.message, { duration });
-            } else if (flashToast.type === 'warning') {
-                toast.warning(flashToast.message, { duration });
-            } else {
-                toast.info(flashToast.message, { duration });
+        const removeFlashListener = router.on('flash', (event) => {
+            const flash = (
+                event.detail as unknown as {
+                    flash?: { toast?: FlashToast };
+                }
+            )?.flash;
+            const data = flash?.toast;
+
+            if (!data) {
+                return;
             }
-        }
-    }, [flashToast]);
 
-    useEffect(() => {
+            const duration = 1500;
+            if (data.type === 'error') {
+                toast.error(data.message, { duration });
+            } else if (data.type === 'success') {
+                toast.success(data.message, { duration });
+            } else if (data.type === 'warning') {
+                toast.warning(data.message, { duration });
+            } else {
+                toast.info(data.message, { duration });
+            }
+        });
+
         // Intercept HTTP exceptions (403, 422, etc.) to prevent full-screen white error modal
         const removeHttpExceptionListener = router.on(
             'httpException',
@@ -46,6 +52,7 @@ export function useFlashToast(): void {
         );
 
         return () => {
+            removeFlashListener();
             removeHttpExceptionListener();
         };
     }, []);

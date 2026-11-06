@@ -120,23 +120,25 @@ export default function Welcome({
     // Kelompokkan armada berdasarkan model mobil unik (nama mobil) agar di katalog tidak muncul kartu duplikat
     const carGroups = useMemo<CarGroup[]>(() => {
         const map = new Map<string, CarGroup>();
+        const carList = Array.isArray(cars) ? cars : [];
 
-        cars.forEach((car) => {
+        carList.forEach((car) => {
+            if (!car || !car.name) return;
             const key = car.name.trim().toLowerCase();
             if (!map.has(key)) {
                 map.set(key, {
                     key,
                     name: car.name,
-                    brand: car.brand,
-                    category: car.category,
-                    year: car.year,
-                    transmission: car.transmission,
-                    seats: car.seats,
-                    fuel_type: car.fuel_type,
-                    price_per_day: car.price_per_day,
-                    with_driver_price: car.with_driver_price,
-                    image_url: car.image_url,
-                    description: car.description,
+                    brand: car.brand || '',
+                    category: car.category || 'MPV',
+                    year: car.year || 2024,
+                    transmission: car.transmission || 'Manual',
+                    seats: car.seats || 7,
+                    fuel_type: car.fuel_type || 'Bensin',
+                    price_per_day: car.price_per_day || 0,
+                    with_driver_price: car.with_driver_price || 0,
+                    image_url: car.image_url || null,
+                    description: car.description || '',
                     features: Array.isArray(car.features) ? car.features : [],
                     units: [],
                     availableUnits: [],
@@ -170,14 +172,14 @@ export default function Welcome({
     }, [cars]);
 
     const filteredGroups = useMemo(() => {
+        const query = (search || '').toLowerCase().trim();
         return carGroups.filter((group) => {
             const matchesSearch =
-                group.name.toLowerCase().includes(search.toLowerCase()) ||
-                group.brand.toLowerCase().includes(search.toLowerCase()) ||
+                !query ||
+                group.name.toLowerCase().includes(query) ||
+                group.brand.toLowerCase().includes(query) ||
                 group.units.some((u) =>
-                    u.license_plate
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
+                    (u.license_plate || '').toLowerCase().includes(query),
                 );
 
             const matchesCategory =
@@ -216,11 +218,14 @@ export default function Welcome({
 
     // Daftar semua unit plat nomor dari jenis model mobil yang sedang dipilih di modal
     const currentModelUnits = useMemo(() => {
-        if (!selectedCar) return [];
-        return cars.filter(
+        if (!selectedCar || !selectedCar.name) return [];
+        const carList = Array.isArray(cars) ? cars : [];
+        return carList.filter(
             (c) =>
+                c &&
+                c.name &&
                 c.name.trim().toLowerCase() ===
-                selectedCar.name.trim().toLowerCase(),
+                    selectedCar.name.trim().toLowerCase(),
         );
     }, [cars, selectedCar]);
 
