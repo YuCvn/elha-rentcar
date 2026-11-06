@@ -469,22 +469,12 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                                                         key={m.id}
                                                         value={m.name}
                                                     >
-                                                        {m.name} ({m.brand} •{' '}
-                                                        {m.transmission} •{' '}
-                                                        {formatRupiah(
-                                                            m.price_per_day,
-                                                        )}
-                                                        /hari)
+                                                        {m.name}
                                                     </option>
                                                 ))}
                                             </select>
-                                            <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                                                ✓ Spesifikasi & tarif model{' '}
-                                                <strong>
-                                                    {selectedModelName}
-                                                </strong>{' '}
-                                                otomatis disalin. Masukkan nomor
-                                                plat baru di bawah ini.
+                                            <p className="text-[11px] text-muted-foreground">
+                                                Spesifikasi model otomatis disalin. Masukkan nomor plat baru di bawah.
                                             </p>
                                         </div>
                                     ) : (

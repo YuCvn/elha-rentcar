@@ -6,6 +6,7 @@ import {
     Clock,
     Fuel,
     Gauge,
+    Home,
     KeyRound,
     LayoutDashboard,
     Mail,
@@ -197,22 +198,34 @@ export default function Welcome({
 
                         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
                             <a
+                                href="#beranda"
+                                className="text-slate-600 transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
+                            >
+                                Beranda
+                            </a>
+                            <a
                                 href="#katalog"
                                 className="text-slate-600 transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
                             >
-                                Katalog Armada
+                                Armada
+                            </a>
+                            <a
+                                href="#services"
+                                className="text-slate-600 transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
+                            >
+                                Services
                             </a>
                             <a
                                 href="#cek-booking"
                                 className="text-slate-600 transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
                             >
-                                Cek Kode Booking
+                                Cek Booking
                             </a>
                             <a
                                 href="#kontak"
                                 className="text-slate-600 transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
                             >
-                                Kontak & Layanan
+                                Kontak
                             </a>
                         </nav>
 
@@ -243,7 +256,10 @@ export default function Welcome({
                 </header>
 
                 {/* Hero Section */}
-                <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-14 text-white sm:py-20 dark:border-slate-800">
+                <section
+                    id="beranda"
+                    className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-14 text-white sm:py-20 dark:border-slate-800"
+                >
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="grid items-center gap-10 lg:grid-cols-12">
                             <div className="space-y-6 lg:col-span-7">
@@ -383,6 +399,79 @@ export default function Welcome({
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Services Section */}
+                <section
+                    id="services"
+                    className="border-b border-slate-200 bg-slate-50/70 py-14 sm:py-16 dark:border-slate-800 dark:bg-slate-900/40"
+                >
+                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                        <div className="mb-10 text-center">
+                            <Badge
+                                variant="outline"
+                                className="mb-2.5 border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            >
+                                Layanan Rental Mobil Subang
+                            </Badge>
+                            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                                Services & Layanan Unggulan
+                            </h2>
+                            <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+                                Fleksibilitas opsi sewa harian hingga bulanan untuk kenyamanan perjalanan pribadi, keluarga, dinas kantor, maupun penjemputan stasiun.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                                <div className="mb-3.5 flex size-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                    <KeyRound className="size-5" />
+                                </div>
+                                <h3 className="text-base font-bold text-foreground">
+                                    Sewa Lepas Kunci
+                                </h3>
+                                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                                    Bebas berkendara 24 jam dengan privasi maksimal. Persyaratan KTP, SIM A, & KK mudah diverifikasi via WhatsApp.
+                                </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                                <div className="mb-3.5 flex size-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                    <UserCheck className="size-5" />
+                                </div>
+                                <h3 className="text-base font-bold text-foreground">
+                                    Sewa dengan Sopir
+                                </h3>
+                                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                                    Perjalanan santai dan aman didampingi sopir profesional Elha yang ramah, tepat waktu, dan hafal jalan.
+                                </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                                <div className="mb-3.5 flex size-11 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                                    <MapPin className="size-5" />
+                                </div>
+                                <h3 className="text-base font-bold text-foreground">
+                                    Antar Jemput & Drop Off
+                                </h3>
+                                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                                    Layanan jemput di Stasiun Pagadenbaru Subang, Bandara Kertajati (BIJB), atau Soekarno-Hatta kapan saja.
+                                </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                                <div className="mb-3.5 flex size-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    <ShieldCheck className="size-5" />
+                                </div>
+                                <h3 className="text-base font-bold text-foreground">
+                                    Sewa Korporasi & Dinas
+                                </h3>
+                                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                                    Kontrak mingguan dan bulanan khusus operasional perusahaan & proyek dengan unit pengganti jika dibutuhkan.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -959,6 +1048,13 @@ export default function Welcome({
                 {/* Mobile Bottom Bar for Public Storefront */}
                 <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-slate-200 bg-white/95 py-2 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-900/95">
                     <a
+                        href="#beranda"
+                        className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400"
+                    >
+                        <Home className="size-5" />
+                        <span>Beranda</span>
+                    </a>
+                    <a
                         href="#katalog"
                         className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400"
                     >
@@ -966,11 +1062,18 @@ export default function Welcome({
                         <span>Armada</span>
                     </a>
                     <a
+                        href="#services"
+                        className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400"
+                    >
+                        <Sparkles className="size-5" />
+                        <span>Services</span>
+                    </a>
+                    <a
                         href="#cek-booking"
                         className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400"
                     >
                         <Clock className="size-5" />
-                        <span>Cek Booking</span>
+                        <span>Booking</span>
                     </a>
                     <a
                         href="#kontak"
@@ -979,13 +1082,6 @@ export default function Welcome({
                         <Phone className="size-5" />
                         <span>Kontak</span>
                     </a>
-                    <Link
-                        href={user ? dashboard() : login()}
-                        className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400"
-                    >
-                        <LayoutDashboard className="size-5" />
-                        <span>{user ? 'Dashboard' : 'Admin'}</span>
-                    </Link>
                 </nav>
             </div>
 
@@ -1123,7 +1219,7 @@ export default function Welcome({
                                                 )
                                                 .map((c) => (
                                                     <option key={c.id} value={c.id}>
-                                                        Plat: {c.license_plate} (Tahun {c.year} • {c.transmission})
+                                                        Plat: {c.license_plate}
                                                     </option>
                                                 ))}
                                         </select>

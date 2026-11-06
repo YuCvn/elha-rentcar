@@ -1,13 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    Briefcase,
     CalendarCheck2,
     CarFront,
     Globe,
     LayoutGrid,
     Mail,
-    Megaphone,
     Phone,
+    Sparkles,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -45,61 +44,76 @@ export function AppSidebar() {
     if (role === 'owner') {
         mainNavItems = [
             {
-                title: 'Dashboard & Rekap Bulanan',
+                title: 'Dashboard',
                 href: dashboard(),
-                icon: Briefcase,
+                icon: LayoutGrid,
             },
             {
-                title: 'Kelola Akun (Admin/Mkt)',
-                href: '/users',
-                icon: Users,
+                title: 'Armada',
+                href: '/fleet',
+                icon: CarFront,
             },
             {
-                title: 'Semua Transaksi Sewa',
+                title: 'Booking',
                 href: '/bookings',
                 icon: CalendarCheck2,
             },
             {
-                title: 'Armada & Utilisasi',
-                href: '/fleet',
-                icon: CarFront,
+                title: 'Services',
+                href: '/#services',
+                icon: Sparkles,
+            },
+            {
+                title: 'Pengguna',
+                href: '/users',
+                icon: Users,
             },
         ];
     } else if (role === 'marketing') {
         mainNavItems = [
             {
-                title: 'Notifikasi & Pesanan Baru',
-                href: dashboard(),
-                icon: Megaphone,
-            },
-            {
-                title: 'Input Persyaratan & Laporan',
-                href: '/bookings',
-                icon: CalendarCheck2,
-            },
-            {
-                title: 'Cek Armada Tersedia',
-                href: '/fleet',
-                icon: CarFront,
-            },
-        ];
-    } else {
-        // Admin Operasional (tidak memiliki akses ke /users karena khusus Owner)
-        mainNavItems = [
-            {
-                title: 'Dashboard & Konfirmasi',
+                title: 'Dashboard',
                 href: dashboard(),
                 icon: LayoutGrid,
             },
             {
-                title: 'Konfirmasi & Jadwal Sewa',
+                title: 'Armada',
+                href: '/fleet',
+                icon: CarFront,
+            },
+            {
+                title: 'Booking',
                 href: '/bookings',
                 icon: CalendarCheck2,
             },
             {
-                title: 'Manajemen Armada Mobil',
+                title: 'Services',
+                href: '/#services',
+                icon: Sparkles,
+            },
+        ];
+    } else {
+        // Admin Operasional
+        mainNavItems = [
+            {
+                title: 'Dashboard',
+                href: dashboard(),
+                icon: LayoutGrid,
+            },
+            {
+                title: 'Armada',
                 href: '/fleet',
                 icon: CarFront,
+            },
+            {
+                title: 'Booking',
+                href: '/bookings',
+                icon: CalendarCheck2,
+            },
+            {
+                title: 'Services',
+                href: '/#services',
+                icon: Sparkles,
             },
         ];
     }
