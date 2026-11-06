@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import {
     Calendar,
+    Car as CarIcon,
     CheckCircle2,
     CreditCard,
     DollarSign,
@@ -28,13 +29,14 @@ import {
     getBookingStatusBadge,
     getPaymentStatusBadge,
 } from '@/lib/rental-utils';
-import type { Booking } from '@/types/rental';
+import type { Booking, Car } from '@/types/rental';
 
 interface BookingWorkflowModalProps {
     booking: Booking;
     userRole: string;
     isReadOnly?: boolean;
     currentUserId?: number;
+    cars?: Car[];
     onClose: () => void;
 }
 
@@ -43,6 +45,7 @@ export function BookingWorkflowModal({
     userRole,
     isReadOnly = false,
     currentUserId,
+    cars = [],
     onClose,
 }: BookingWorkflowModalProps) {
     const isLocked = Boolean(
@@ -58,6 +61,8 @@ export function BookingWorkflowModal({
 
     const canEdit =
         !isLocked && !isOwnerRole && !isReadOnly && !isDifferentMarketing;
+
+    const [selectedCarId, setSelectedCarId] = useState<number>(booking.car_id);
     const [ktpNumber, setKtpNumber] = useState(
         booking.customer_ktp_number ?? booking.customer_identity_number ?? '',
     );
@@ -89,14 +94,30 @@ export function BookingWorkflowModal({
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const totalDays = calculateDays(startDate, endDate);
-    const carRate = booking.car?.price_per_day ?? booking.car_price_per_day;
-    const driverRate = booking.car?.with_driver_price ?? 150000;
+    const selectedCar =
+        cars.find((c) => c.id === selectedCarId) ?? booking.car;
+    const carRate = selectedCar?.price_per_day ?? booking.car_price_per_day;
+    const driverRate = selectedCar?.with_driver_price ?? 150000;
     const finalTotal =
         carRate * totalDays + (withDriver ? driverRate * totalDays : 0);
 
+    const availableCarOptions =
+        cars.length > 0
+            ? cars.filter(
+                  (c) =>
+                      c.status === 'available' ||
+                      c.id === booking.car_id ||
+                      c.id === selectedCarId,
+              )
+            : booking.car
+              ? [booking.car]
+              : [];
+
     const waPhone = formatWhatsAppNumber(booking.customer_phone);
+    const currentCarName = selectedCar?.name ?? 'Armada Elha';
+    const currentLicensePlate = selectedCar?.license_plate ?? '';
     const waText = encodeURIComponent(
-        `Halo Kak ${booking.customer_name}, kami dari Tim Marketing Elha Rent Car Subang.\n\nMenindaklanjuti pesanan mobil *${booking.car?.name ?? 'Armada Elha'}* (Kode: *${booking.booking_code}*) untuk tanggal *${startDate}* s/d *${endDate}*.\n\nMohon kirimkan kelengkapan persyaratan berikut untuk verifikasi kami:\n- Foto & Nomor NIK KTP (16 Digit Angka)\n- Foto & Nomor SIM A (12-16 Digit Angka)\n- Foto & Nomor Kartu Keluarga (KK 16 Digit Angka)\n- Konfirmasi jadwal peminjaman final\n- Bukti transfer pembayaran (DP 50% / Lunas)\n\nTerima kasih!`,
+        `Halo Kak ${booking.customer_name}, kami dari Tim Marketing Elha Rent Car Subang.\n\nMenindaklanjuti pesanan mobil *${currentCarName}* (Plat: *${currentLicensePlate}*, Kode: *${booking.booking_code}*) untuk tanggal *${startDate}* s/d *${endDate}*.\n\nMohon kirimkan kelengkapan persyaratan berikut untuk verifikasi kami:\n- Foto & Nomor NIK KTP (16 Digit Angka)\n- Foto & Nomor SIM A (12-16 Digit Angka)\n- Foto & Nomor Kartu Keluarga (KK 16 Digit Angka)\n- Konfirmasi jadwal peminjaman final\n- Bukti transfer pembayaran (DP 50% / Lunas)\n\nTerima kasih!`,
     );
 
     const handleMarketingSubmit = (targetPaymentStatus: 'dp' | 'paid') => {
@@ -137,6 +158,7 @@ export function BookingWorkflowModal({
         router.post(
             `/bookings/${booking.id}/marketing-verify`,
             {
+                car_id: selectedCarId,
                 customer_ktp_number: cleanKtp,
                 customer_sim_number: cleanSim,
                 customer_kk_number: cleanKk,
@@ -262,8 +284,8 @@ export function BookingWorkflowModal({
                         <p className="text-xs text-muted-foreground">
                             Unit Kendaraan yang Diminati:{' '}
                             <strong className="text-foreground">
-                                {booking.car?.name ?? 'Armada Elha'} (
-                                {booking.car?.license_plate})
+                                {selectedCar?.name ?? 'Armada Elha'} (
+                                {selectedCar?.license_plate})
                             </strong>
                         </p>
                     </div>
@@ -405,6 +427,57 @@ export function BookingWorkflowModal({
 
                 {/* Form Data KTP, SIM, KK, Waktu Peminjaman Final, dan Bukti Transaksi */}
                 <div className="mt-5 space-y-5">
+                    {/* Unit Kendaraan & Pilihan Plat Nomor */}
+                    <div className="rounded-xl border border-border bg-muted/20 p-4">
+                        <div className="mb-2 flex items-center justify-between">
+                            <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                                <CarIcon className="size-4 text-blue-600 dark:text-blue-400" />
+                                <span>Unit Kendaraan & Plat Nomor</span>
+                            </h4>
+                            {selectedCarId !== booking.car_id ? (
+                                <Badge className="bg-amber-500 text-[11px] text-white">
+                                    Unit / Plat Diubah
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="font-mono text-[11px]">
+                                    Plat: {selectedCar?.license_plate}
+                                </Badge>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="wf_car_select" className="text-xs text-muted-foreground">
+                                Pilih / Pindahkan Unit Kendaraan & Nomor Plat (Sesuai Permintaan Calon Pembeli):
+                            </Label>
+                            <select
+                                id="wf_car_select"
+                                value={selectedCarId}
+                                disabled={!canEdit}
+                                onChange={(e) => setSelectedCarId(Number(e.target.value))}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1 text-xs font-mono font-semibold shadow-xs focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                {availableCarOptions.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.license_plate} — {c.name} ({formatRupiah(c.price_per_day)}/hari) {c.id === booking.car_id ? '★ Unit Awal' : ''}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <div className="flex flex-wrap items-center justify-between pt-1 text-xs">
+                                <span className="text-muted-foreground">
+                                    Mobil Terpilih: <strong className="text-foreground">{selectedCar?.name}</strong> • Plat:{' '}
+                                    <strong className="font-mono text-foreground">{selectedCar?.license_plate}</strong> • Tarif:{' '}
+                                    <strong className="text-foreground">{formatRupiah(carRate)}/hari</strong>
+                                </span>
+                                {selectedCarId !== booking.car_id && (
+                                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                                        ⚠️ Pindah plat dari <strong>{booking.car?.license_plate}</strong> ➜ <strong>{selectedCar?.license_plate}</strong>
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Data Dokumen Identitas (KTP, SIM, KK) */}
                     <div className="rounded-xl border border-border p-4">
                         <h4 className="mb-3 flex items-center gap-2 text-sm font-bold">

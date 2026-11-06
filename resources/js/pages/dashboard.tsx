@@ -1271,6 +1271,7 @@ export default function Dashboard({
                     key={activeBookingModal.id}
                     booking={activeBookingModal}
                     userRole={userRole}
+                    cars={cars}
                     onClose={() => setActiveBookingModal(null)}
                 />
             )}

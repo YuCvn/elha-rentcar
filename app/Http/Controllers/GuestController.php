@@ -87,7 +87,8 @@ class GuestController extends Controller
          *   pickup_location?: string|null,
          *   return_location?: string|null,
          *   payment_method?: string|null,
-         *   notes?: string|null
+         *   notes?: string|null,
+         *   plate_option?: string|null
          * } $validated
          */
         $validated = $request->validate([
@@ -103,6 +104,7 @@ class GuestController extends Controller
             'return_location' => ['nullable', 'string', 'max:200'],
             'payment_method' => ['nullable', 'string', Rule::in(['qris', 'transfer_bank', 'ewallet', 'cash'])],
             'notes' => ['nullable', 'string', 'max:500'],
+            'plate_option' => ['nullable', 'string', Rule::in(['free', 'specific'])],
         ], [
             'customer_name.min' => 'Nama lengkap minimal 3 karakter.',
             'customer_phone.regex' => 'Nomor WhatsApp tidak valid. Gunakan nomor Indonesia diawali 08 atau +628 (10-14 digit angka).',
@@ -111,6 +113,12 @@ class GuestController extends Controller
 
         /** @var Car $car */
         $car = Car::query()->findOrFail((int) $validated['car_id']);
+
+        $plateOption = (string) ($validated['plate_option'] ?? 'free');
+        $plateNote = $plateOption === 'specific'
+            ? "[Preferensi Plat: Spesifik ({$car->license_plate})]"
+            : '[Preferensi Plat: Bebas / Rekomendasi Marketing]';
+        $finalNotes = trim($plateNote.' '.((string) ($validated['notes'] ?? '')));
 
         $startDate = Carbon::parse($validated['start_date'])->startOfDay();
         $endDate = Carbon::parse($validated['end_date'])->startOfDay();
@@ -143,7 +151,7 @@ class GuestController extends Controller
             'status' => 'pending',
             'payment_status' => 'unpaid',
             'payment_method' => $validated['payment_method'] ?? 'transfer_bank',
-            'notes' => $validated['notes'] ?? null,
+            'notes' => $finalNotes !== '' ? $finalNotes : null,
         ]);
 
         return redirect()->route('home', ['code' => $booking->booking_code])->with('toast', [

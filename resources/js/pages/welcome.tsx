@@ -66,7 +66,8 @@ export default function Welcome({
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [selectedTransmission, setSelectedTransmission] =
         useState<string>('all');
-    const [onlyAvailable, setOnlyAvailable] = useState<boolean>(false);
+    const [selectedStatus, setSelectedStatus] = useState<string>('all');
+    const [plateOption, setPlateOption] = useState<'free' | 'specific'>('free');
     const [bookingCodeInput, setBookingCodeInput] =
         useState<string>(lookupCode);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
@@ -82,6 +83,7 @@ export default function Welcome({
         pickup_location: 'Kantor Elha Rent Car Subang',
         return_location: 'Kantor Elha Rent Car Subang',
         notes: '',
+        plate_option: 'free' as 'free' | 'specific',
     });
 
     const categories = ['all', 'MPV', 'SUV', 'City Car', 'EV', 'Luxury'];
@@ -100,23 +102,25 @@ export default function Welcome({
                 selectedTransmission === 'all' ||
                 car.transmission === selectedTransmission;
 
-            const matchesAvailable =
-                !onlyAvailable || car.status === 'available';
+            const matchesStatus =
+                selectedStatus === 'all' || car.status === selectedStatus;
 
             return (
                 matchesSearch &&
                 matchesCategory &&
                 matchesTransmission &&
-                matchesAvailable
+                matchesStatus
             );
         });
-    }, [cars, search, selectedCategory, selectedTransmission, onlyAvailable]);
+    }, [cars, search, selectedCategory, selectedTransmission, selectedStatus]);
 
     const openBookingModal = (car: Car) => {
         setSelectedCar(car);
+        setPlateOption('free');
         bookingForm.setData({
             ...bookingForm.data,
             car_id: car.id,
+            plate_option: 'free',
         });
     };
 
@@ -453,18 +457,19 @@ export default function Welcome({
                             </select>
                         </div>
 
-                        <div className="flex items-center sm:col-span-3">
-                            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium select-none">
-                                <input
-                                    type="checkbox"
-                                    checked={onlyAvailable}
-                                    onChange={(e) =>
-                                        setOnlyAvailable(e.target.checked)
-                                    }
-                                    className="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span>Hanya yang Tersedia</span>
-                            </label>
+                        <div className="sm:col-span-3">
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) =>
+                                    setSelectedStatus(e.target.value)
+                                }
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-medium shadow-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none dark:bg-slate-900"
+                            >
+                                <option value="all">Semua Status Unit</option>
+                                <option value="available">🟢 Siap Sewa (Tersedia)</option>
+                                <option value="rented">🔵 Sedang Digunakan (Jalan)</option>
+                                <option value="maintenance">🟠 Dalam Perawatan (Bengkel)</option>
+                            </select>
                         </div>
                     </div>
 
@@ -519,8 +524,8 @@ export default function Welcome({
                                     </div>
 
                                     <div className="flex flex-1 flex-col p-5">
-                                        <div className="mb-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                                            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                                        <div className="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                                            <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tracking-wider text-slate-800 shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                                 {car.license_plate}
                                             </span>
                                             <span className="font-medium text-slate-500 dark:text-slate-400">
@@ -588,23 +593,38 @@ export default function Welcome({
                                                     </p>
                                                 </div>
 
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    disabled={!isAvailable}
-                                                    onClick={() =>
-                                                        openBookingModal(car)
-                                                    }
-                                                    className={
-                                                        isAvailable
-                                                            ? 'bg-blue-600 text-white hover:bg-blue-500'
-                                                            : ''
-                                                    }
-                                                >
-                                                    {isAvailable
-                                                        ? 'Sewa Sekarang'
-                                                        : 'Tidak Tersedia'}
-                                                </Button>
+                                                {car.status === 'available' ? (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            openBookingModal(car)
+                                                        }
+                                                        className="bg-blue-600 font-semibold text-white hover:bg-blue-500"
+                                                    >
+                                                        Sewa Sekarang
+                                                    </Button>
+                                                ) : car.status === 'rented' ? (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled
+                                                        variant="outline"
+                                                        className="cursor-not-allowed border-blue-500/30 bg-blue-500/10 font-semibold text-blue-600 opacity-90 dark:text-blue-400"
+                                                    >
+                                                        Sedang Digunakan
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled
+                                                        variant="outline"
+                                                        className="cursor-not-allowed border-amber-500/30 bg-amber-500/10 font-semibold text-amber-600 opacity-90 dark:text-amber-400"
+                                                    >
+                                                        Dalam Perawatan
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1009,6 +1029,110 @@ export default function Welcome({
                             onSubmit={handleBookingSubmit}
                             className="mt-4 space-y-4"
                         >
+                            {/* Preferensi Nomor Plat Kendaraan */}
+                            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                                <div>
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                        Preferensi Nomor Plat Kendaraan
+                                    </Label>
+                                    <p className="text-[11px] text-slate-500">
+                                        Pilih apakah Anda menyerahkan penentuan plat ke Tim Marketing atau ingin memilih plat spesifik unit ini.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPlateOption('free');
+                                            bookingForm.setData('plate_option', 'free');
+                                        }}
+                                        className={`flex flex-col items-start rounded-xl border p-3 text-left transition ${
+                                            plateOption === 'free'
+                                                ? 'border-blue-500 bg-blue-50/80 text-blue-900 ring-2 ring-blue-500/30 dark:bg-blue-950/40 dark:text-blue-200'
+                                                : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-1.5 text-xs font-bold">
+                                            <span>1. Nomor Plat Bebas</span>
+                                            {plateOption === 'free' && (
+                                                <Badge className="bg-blue-600 px-1.5 py-0 text-[10px] text-white">
+                                                    Dipilih
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <span className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                            Pilihkan unit paling prima & siap pakai oleh Marketing
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPlateOption('specific');
+                                            bookingForm.setData('plate_option', 'specific');
+                                        }}
+                                        className={`flex flex-col items-start rounded-xl border p-3 text-left transition ${
+                                            plateOption === 'specific'
+                                                ? 'border-blue-500 bg-blue-50/80 text-blue-900 ring-2 ring-blue-500/30 dark:bg-blue-950/40 dark:text-blue-200'
+                                                : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-1.5 text-xs font-bold">
+                                            <span>2. Pilih Plat Nomor Sendiri</span>
+                                            {plateOption === 'specific' && (
+                                                <Badge className="bg-blue-600 px-1.5 py-0 text-[10px] text-white">
+                                                    Dipilih
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <span className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                            Tentukan unit dengan nomor plat spesifik yang Anda inginkan
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {plateOption === 'specific' ? (
+                                    <div className="space-y-1.5 border-t border-slate-200 pt-3 dark:border-slate-700">
+                                        <Label htmlFor="specific_plate_select" className="text-xs font-semibold">
+                                            Pilih Unit Plat Nomor yang Tersedia:
+                                        </Label>
+                                        <select
+                                            id="specific_plate_select"
+                                            value={selectedCar.id}
+                                            onChange={(e) => {
+                                                const targetId = Number(e.target.value);
+                                                const found = cars.find((c) => c.id === targetId);
+                                                if (found) {
+                                                    setSelectedCar(found);
+                                                    bookingForm.setData({
+                                                        ...bookingForm.data,
+                                                        car_id: found.id,
+                                                        plate_option: 'specific',
+                                                    });
+                                                }
+                                            }}
+                                            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 font-mono text-xs font-bold shadow-xs focus-visible:ring-1 focus-visible:ring-ring dark:bg-slate-900"
+                                        >
+                                            {cars
+                                                .filter((c) => c.status === 'available')
+                                                .map((c) => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.license_plate} — {c.name} ({formatRupiah(c.price_per_day)}/hari)
+                                                    </option>
+                                                ))}
+                                        </select>
+                                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                                            ✓ Unit spesifik yang dipilih: <strong>{selectedCar.name} ({selectedCar.license_plate})</strong>
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className="border-t border-slate-200 pt-2 text-[11px] text-blue-600 dark:border-slate-700 dark:text-blue-400">
+                                        ℹ️ Tim Marketing Elha akan menyiapkan unit mobil <strong>{selectedCar.name}</strong> dengan kondisi terbaik dan bahan bakar siap jalan saat konfirmasi.
+                                    </p>
+                                )}
+                            </div>
+
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="customer_name">

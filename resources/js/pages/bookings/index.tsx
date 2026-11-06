@@ -671,6 +671,7 @@ export default function BookingsIndex({
                     userRole={userRole}
                     isReadOnly={isReadOnly}
                     currentUserId={currentUserId}
+                    cars={cars}
                     onClose={() => setActiveWorkflowBooking(null)}
                 />
             )}

@@ -157,6 +157,7 @@ class MarketingController extends Controller
         ]);
 
         /** @var array{
+         *   car_id?: int|null,
          *   customer_ktp_number: string,
          *   customer_sim_number: string,
          *   customer_kk_number: string,
@@ -172,6 +173,7 @@ class MarketingController extends Controller
          * } $validated
          */
         $validated = $request->validate([
+            'car_id' => ['nullable', 'integer', 'exists:cars,id'],
             'customer_ktp_number' => ['required', 'string', 'regex:/^[0-9]{16}$/'],
             'customer_sim_number' => ['required', 'string', 'regex:/^[0-9]{12,16}$/'],
             'customer_kk_number' => ['required', 'string', 'regex:/^[0-9]{16}$/'],
@@ -195,15 +197,24 @@ class MarketingController extends Controller
             'customer_address.min' => 'Alamat lengkap domisili minimal 5 karakter.',
         ]);
 
-        $car = $booking->car;
+        $targetCarId = ! empty($validated['car_id']) ? (int) $validated['car_id'] : $booking->car_id;
+        /** @var Car $car */
+        $car = Car::query()->findOrFail($targetCarId);
+
+        $carChangeNote = '';
+        if ($targetCarId !== $booking->car_id) {
+            $oldPlate = $booking->car !== null ? $booking->car->license_plate : 'Lama';
+            $carChangeNote = " [Unit dipindah oleh Marketing dari plat {$oldPlate} ke {$car->license_plate}]";
+        }
+
         $startDate = Carbon::parse($validated['start_date'])->startOfDay();
         $endDate = Carbon::parse($validated['end_date'])->startOfDay();
         $daysDiff = (int) $startDate->diffInDays($endDate);
         $totalDays = max(1, $daysDiff);
 
         $withDriver = (bool) ($validated['with_driver'] ?? $booking->with_driver);
-        $carPricePerDay = $car !== null ? $car->price_per_day : $booking->car_price_per_day;
-        $driverRate = $car !== null ? $car->with_driver_price : 150000;
+        $carPricePerDay = $car->price_per_day;
+        $driverRate = $car->with_driver_price;
         $driverFeeTotal = $withDriver ? ($driverRate * $totalDays) : 0;
         $totalPrice = ($carPricePerDay * $totalDays) + $driverFeeTotal;
 
@@ -214,6 +225,7 @@ class MarketingController extends Controller
 
         $booking->update([
             'user_id' => $currentUser->id,
+            'car_id' => $car->id,
             'customer_identity_number' => $validated['customer_ktp_number'],
             'customer_ktp_number' => $validated['customer_ktp_number'],
             'customer_sim_number' => $validated['customer_sim_number'],
@@ -235,7 +247,7 @@ class MarketingController extends Controller
             'status' => 'waiting_admin',
             'payment_status' => $validated['payment_status'],
             'payment_method' => $validated['payment_method'],
-            'marketing_notes' => $validated['marketing_notes'] ?? $booking->marketing_notes,
+            'marketing_notes' => trim(($validated['marketing_notes'] ?? ($booking->marketing_notes ?? '')).$carChangeNote),
             'verified_by_marketing_at' => now(),
         ]);
 
