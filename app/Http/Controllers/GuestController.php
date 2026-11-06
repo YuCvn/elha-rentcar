@@ -115,6 +115,33 @@ class GuestController extends Controller
         $car = Car::query()->findOrFail((int) $validated['car_id']);
 
         $plateOption = (string) ($validated['plate_option'] ?? 'free');
+
+        // Pastikan mobil yang dipilih siap digunakan (bukan sedang disewa / perbaikan)
+        if ($car->status !== 'available') {
+            if ($plateOption === 'specific') {
+                $statusIndo = $car->status === 'rented' ? 'sedang digunakan (disewa)' : 'dalam masa perawatan di bengkel';
+
+                return back()->withErrors([
+                    'car_id' => "Unit dengan plat nomor {$car->license_plate} saat ini {$statusIndo} dan tidak dapat dipesan. Silakan pilih unit lain yang tersedia.",
+                ]);
+            }
+
+            // Jika preferensi nomor plat bebas, carikan unit model yang sama yang berstatus 'available'
+            /** @var Car|null $availableSameModel */
+            $availableSameModel = Car::query()
+                ->where('name', $car->name)
+                ->where('status', 'available')
+                ->first();
+
+            if (! $availableSameModel) {
+                return back()->withErrors([
+                    'car_id' => "Semua unit armada untuk model {$car->name} saat ini sedang beroperasi/digunakan. Silakan pilih model mobil lainnya.",
+                ]);
+            }
+
+            $car = $availableSameModel;
+        }
+
         $plateNote = $plateOption === 'specific'
             ? "[Preferensi Plat: Spesifik ({$car->license_plate})]"
             : '[Preferensi Plat: Bebas / Rekomendasi Marketing]';

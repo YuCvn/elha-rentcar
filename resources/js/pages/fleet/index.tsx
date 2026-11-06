@@ -429,9 +429,11 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                                     />
                                     <label
                                         htmlFor="isSameModelUnit"
-                                        className="cursor-pointer text-xs font-semibold select-none text-foreground"
+                                        className="cursor-pointer text-xs font-semibold text-foreground select-none"
                                     >
-                                        Tambah Unit satu merk mobil (Pilih dari model armada yang sudah ada, tanpa perlu mengisi manual)
+                                        Tambah Unit satu merk mobil (Pilih dari
+                                        model armada yang sudah ada, tanpa perlu
+                                        mengisi manual)
                                     </label>
                                 </div>
                             )}
@@ -474,7 +476,9 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                                                 ))}
                                             </select>
                                             <p className="text-[11px] text-muted-foreground">
-                                                Spesifikasi model otomatis disalin. Masukkan nomor plat baru di bawah.
+                                                Spesifikasi model otomatis
+                                                disalin. Masukkan nomor plat
+                                                baru di bawah.
                                             </p>
                                         </div>
                                     ) : (

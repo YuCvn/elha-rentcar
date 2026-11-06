@@ -1,25 +1,30 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
+    AlertTriangle,
     Calendar,
     Car as CarIcon,
+    Check,
     CheckCircle2,
     Clock,
     Fuel,
     Gauge,
     Home,
+    Info,
     KeyRound,
     LayoutDashboard,
     Mail,
     MapPin,
     MessageCircle,
     Phone,
+    RotateCcw,
     Search,
     ShieldCheck,
     Sparkles,
-    Star,
     UserCheck,
     Users,
     X,
+    ZoomIn,
+    ZoomOut,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -31,11 +36,32 @@ import {
     calculateDays,
     formatRupiah,
     getBookingStatusBadge,
-    getCarStatusBadge,
     getPaymentStatusBadge,
 } from '@/lib/rental-utils';
 import { dashboard, login } from '@/routes';
 import type { Booking, Car } from '@/types/rental';
+
+export interface CarGroup {
+    key: string;
+    name: string;
+    brand: string;
+    category: string;
+    year: number;
+    transmission: string;
+    seats: number;
+    fuel_type: string;
+    price_per_day: number;
+    with_driver_price: number;
+    image_url: string | null;
+    description: string | null;
+    features: string[];
+    units: Car[];
+    availableUnits: Car[];
+    rentedUnits: Car[];
+    maintenanceUnits: Car[];
+    isAvailable: boolean;
+    totalTrips: number;
+}
 
 interface WelcomeProps {
     cars: Car[];
@@ -72,6 +98,8 @@ export default function Welcome({
     const [bookingCodeInput, setBookingCodeInput] =
         useState<string>(lookupCode);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+    const [isZoomOpen, setIsZoomOpen] = useState(false);
+    const [zoomScale, setZoomScale] = useState(1);
 
     const bookingForm = useForm({
         car_id: 0,
@@ -89,22 +117,87 @@ export default function Welcome({
 
     const categories = ['all', 'MPV', 'SUV', 'City Car', 'EV', 'Luxury'];
 
-    const filteredCars = useMemo(() => {
-        return cars.filter((car) => {
+    // Kelompokkan armada berdasarkan model mobil unik (nama mobil) agar di katalog tidak muncul kartu duplikat
+    const carGroups = useMemo<CarGroup[]>(() => {
+        const map = new Map<string, CarGroup>();
+
+        cars.forEach((car) => {
+            const key = car.name.trim().toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, {
+                    key,
+                    name: car.name,
+                    brand: car.brand,
+                    category: car.category,
+                    year: car.year,
+                    transmission: car.transmission,
+                    seats: car.seats,
+                    fuel_type: car.fuel_type,
+                    price_per_day: car.price_per_day,
+                    with_driver_price: car.with_driver_price,
+                    image_url: car.image_url,
+                    description: car.description,
+                    features: Array.isArray(car.features) ? car.features : [],
+                    units: [],
+                    availableUnits: [],
+                    rentedUnits: [],
+                    maintenanceUnits: [],
+                    isAvailable: false,
+                    totalTrips: 0,
+                });
+            }
+
+            const group = map.get(key)!;
+            group.units.push(car);
+            if (car.status === 'available') {
+                group.availableUnits.push(car);
+            } else if (car.status === 'rented') {
+                group.rentedUnits.push(car);
+            } else if (car.status === 'maintenance') {
+                group.maintenanceUnits.push(car);
+            }
+            group.totalTrips += car.total_trips || 0;
+            if (!group.image_url && car.image_url) {
+                group.image_url = car.image_url;
+            }
+        });
+
+        map.forEach((group) => {
+            group.isAvailable = group.availableUnits.length > 0;
+        });
+
+        return Array.from(map.values());
+    }, [cars]);
+
+    const filteredGroups = useMemo(() => {
+        return carGroups.filter((group) => {
             const matchesSearch =
-                car.name.toLowerCase().includes(search.toLowerCase()) ||
-                car.brand.toLowerCase().includes(search.toLowerCase()) ||
-                car.license_plate.toLowerCase().includes(search.toLowerCase());
+                group.name.toLowerCase().includes(search.toLowerCase()) ||
+                group.brand.toLowerCase().includes(search.toLowerCase()) ||
+                group.units.some((u) =>
+                    u.license_plate
+                        .toLowerCase()
+                        .includes(search.toLowerCase()),
+                );
 
             const matchesCategory =
-                selectedCategory === 'all' || car.category === selectedCategory;
+                selectedCategory === 'all' ||
+                group.category === selectedCategory;
 
             const matchesTransmission =
                 selectedTransmission === 'all' ||
-                car.transmission === selectedTransmission;
+                group.transmission === selectedTransmission;
 
             const matchesStatus =
-                selectedStatus === 'all' || car.status === selectedStatus;
+                selectedStatus === 'all' ||
+                (selectedStatus === 'available' &&
+                    group.availableUnits.length > 0) ||
+                (selectedStatus === 'rented' &&
+                    group.availableUnits.length === 0 &&
+                    group.rentedUnits.length > 0) ||
+                (selectedStatus === 'maintenance' &&
+                    group.availableUnits.length === 0 &&
+                    group.maintenanceUnits.length > 0);
 
             return (
                 matchesSearch &&
@@ -113,14 +206,40 @@ export default function Welcome({
                 matchesStatus
             );
         });
-    }, [cars, search, selectedCategory, selectedTransmission, selectedStatus]);
+    }, [
+        carGroups,
+        search,
+        selectedCategory,
+        selectedTransmission,
+        selectedStatus,
+    ]);
+
+    // Daftar semua unit plat nomor dari jenis model mobil yang sedang dipilih di modal
+    const currentModelUnits = useMemo(() => {
+        if (!selectedCar) return [];
+        return cars.filter(
+            (c) =>
+                c.name.trim().toLowerCase() ===
+                selectedCar.name.trim().toLowerCase(),
+        );
+    }, [cars, selectedCar]);
 
     const openBookingModal = (car: Car) => {
-        setSelectedCar(car);
+        // Jika unit yang diklik bukan 'available', coba carikan unit yang 'available' dari model ini
+        const sameModelAvailable = cars.find(
+            (c) =>
+                c.name.trim().toLowerCase() === car.name.trim().toLowerCase() &&
+                c.status === 'available',
+        );
+        const targetCar = sameModelAvailable ?? car;
+
+        setSelectedCar(targetCar);
         setPlateOption('free');
+        setZoomScale(1);
+        setIsZoomOpen(false);
         bookingForm.setData({
             ...bookingForm.data,
-            car_id: car.id,
+            car_id: targetCar.id,
             plate_option: 'free',
         });
     };
@@ -421,7 +540,9 @@ export default function Welcome({
                                 Services & Layanan Unggulan
                             </h2>
                             <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-                                Fleksibilitas opsi sewa harian hingga bulanan untuk kenyamanan perjalanan pribadi, keluarga, dinas kantor, maupun penjemputan stasiun.
+                                Fleksibilitas opsi sewa harian hingga bulanan
+                                untuk kenyamanan perjalanan pribadi, keluarga,
+                                dinas kantor, maupun penjemputan stasiun.
                             </p>
                         </div>
 
@@ -434,7 +555,9 @@ export default function Welcome({
                                     Sewa Lepas Kunci
                                 </h3>
                                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                                    Bebas berkendara 24 jam dengan privasi maksimal. Persyaratan KTP, SIM A, & KK mudah diverifikasi via WhatsApp.
+                                    Bebas berkendara 24 jam dengan privasi
+                                    maksimal. Persyaratan KTP, SIM A, & KK mudah
+                                    diverifikasi via WhatsApp.
                                 </p>
                             </div>
 
@@ -446,7 +569,9 @@ export default function Welcome({
                                     Sewa dengan Sopir
                                 </h3>
                                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                                    Perjalanan santai dan aman didampingi sopir profesional Elha yang ramah, tepat waktu, dan hafal jalan.
+                                    Perjalanan santai dan aman didampingi sopir
+                                    profesional Elha yang ramah, tepat waktu,
+                                    dan hafal jalan.
                                 </p>
                             </div>
 
@@ -458,7 +583,9 @@ export default function Welcome({
                                     Antar Jemput & Drop Off
                                 </h3>
                                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                                    Layanan jemput di Stasiun Pagadenbaru Subang, Bandara Kertajati (BIJB), atau Soekarno-Hatta kapan saja.
+                                    Layanan jemput di Stasiun Pagadenbaru
+                                    Subang, Bandara Kertajati (BIJB), atau
+                                    Soekarno-Hatta kapan saja.
                                 </p>
                             </div>
 
@@ -470,7 +597,9 @@ export default function Welcome({
                                     Sewa Korporasi & Dinas
                                 </h3>
                                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                                    Kontrak mingguan dan bulanan khusus operasional perusahaan & proyek dengan unit pengganti jika dibutuhkan.
+                                    Kontrak mingguan dan bulanan khusus
+                                    operasional perusahaan & proyek dengan unit
+                                    pengganti jika dibutuhkan.
                                 </p>
                             </div>
                         </div>
@@ -555,29 +684,32 @@ export default function Welcome({
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-medium shadow-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none dark:bg-slate-900"
                             >
                                 <option value="all">Semua Status Unit</option>
-                                <option value="available">🟢 Siap Sewa (Tersedia)</option>
-                                <option value="rented">🔵 Sedang Digunakan (Jalan)</option>
-                                <option value="maintenance">🟠 Dalam Perawatan (Bengkel)</option>
+                                <option value="available">
+                                    🟢 Siap Sewa (Tersedia)
+                                </option>
+                                <option value="rented">
+                                    🔵 Sedang Digunakan (Jalan)
+                                </option>
+                                <option value="maintenance">
+                                    🟠 Dalam Perawatan (Bengkel)
+                                </option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Cars Grid */}
+                    {/* Cars Grid - 1 Kartu Unik per Model Kendaraan (Tidak Ada Duplikasi Merk) */}
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {filteredCars.map((car) => {
-                            const statusBadge = getCarStatusBadge(car.status);
-                            const isAvailable = car.status === 'available';
-
+                        {filteredGroups.map((group) => {
                             return (
                                 <div
-                                    key={car.id}
+                                    key={group.key}
                                     className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
                                 >
                                     <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                        {car.image_url ? (
+                                        {group.image_url ? (
                                             <img
-                                                src={car.image_url}
-                                                alt={car.name}
+                                                src={group.image_url}
+                                                alt={group.name}
                                                 className="size-full object-cover transition duration-500 group-hover:scale-105"
                                                 loading="lazy"
                                             />
@@ -592,42 +724,84 @@ export default function Welcome({
                                                 variant="outline"
                                                 className="border-slate-900/20 bg-slate-900/75 text-white backdrop-blur-sm"
                                             >
-                                                {car.category}
+                                                {group.category}
                                             </Badge>
                                             <Badge
                                                 variant="outline"
                                                 className="border-slate-900/20 bg-white/90 text-slate-900 backdrop-blur-sm"
                                             >
-                                                {car.year}
+                                                {group.year}
                                             </Badge>
                                         </div>
 
                                         <div className="absolute top-3 right-3">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${statusBadge.className} backdrop-blur-sm`}
-                                            >
-                                                {statusBadge.label}
-                                            </Badge>
+                                            {group.isAvailable ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-emerald-500/40 bg-emerald-500/90 font-bold text-white shadow-xs backdrop-blur-sm"
+                                                >
+                                                    🟢{' '}
+                                                    {
+                                                        group.availableUnits
+                                                            .length
+                                                    }{' '}
+                                                    Unit Siap
+                                                </Badge>
+                                            ) : group.rentedUnits.length > 0 ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-blue-500/40 bg-blue-600/90 font-bold text-white shadow-xs backdrop-blur-sm"
+                                                >
+                                                    🔵 Sedang Digunakan
+                                                </Badge>
+                                            ) : (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-amber-500/40 bg-amber-600/90 font-bold text-white shadow-xs backdrop-blur-sm"
+                                                >
+                                                    🟠 Dalam Perawatan
+                                                </Badge>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="flex flex-1 flex-col p-5">
-                                        <div className="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                                            <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tracking-wider text-slate-800 shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                {car.license_plate}
-                                            </span>
+                                        {/* Status Plat & Unit yang dimiliki model ini */}
+                                        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 pb-2.5 text-xs dark:border-slate-800">
+                                            <div className="flex flex-wrap items-center gap-1">
+                                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                                    Armada ({group.units.length}
+                                                    ):
+                                                </span>
+                                                {group.units.map((unit) => (
+                                                    <span
+                                                        key={unit.id}
+                                                        className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold transition ${
+                                                            unit.status ===
+                                                            'available'
+                                                                ? 'border-emerald-400/60 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                                                : unit.status ===
+                                                                    'rented'
+                                                                  ? 'border-blue-400/60 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                                                                  : 'border-amber-400/60 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                                        }`}
+                                                        title={`Plat: ${unit.license_plate} (${unit.status === 'available' ? 'Tersedia Siap Jalan' : unit.status === 'rented' ? 'Sedang Dipakai Pelanggan' : 'Dalam Perawatan'})`}
+                                                    >
+                                                        {unit.license_plate}
+                                                    </span>
+                                                ))}
+                                            </div>
                                             <span className="font-medium text-slate-500 dark:text-slate-400">
-                                                {car.total_trips} trip
+                                                {group.totalTrips} trip
                                             </span>
                                         </div>
 
                                         <h3 className="line-clamp-1 text-base font-bold text-slate-900 dark:text-white">
-                                            {car.name}
+                                            {group.name}
                                         </h3>
 
                                         <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-400">
-                                            {car.description}
+                                            {group.description}
                                         </p>
 
                                         {/* Specs */}
@@ -635,28 +809,28 @@ export default function Welcome({
                                             <div className="flex flex-col items-center gap-1 text-center">
                                                 <Gauge className="size-3.5 text-blue-600 dark:text-blue-400" />
                                                 <span className="font-medium">
-                                                    {car.transmission}
+                                                    {group.transmission}
                                                 </span>
                                             </div>
                                             <div className="flex flex-col items-center gap-1 text-center">
                                                 <Users className="size-3.5 text-blue-600 dark:text-blue-400" />
                                                 <span className="font-medium">
-                                                    {car.seats} Kursi
+                                                    {group.seats} Kursi
                                                 </span>
                                             </div>
                                             <div className="flex flex-col items-center gap-1 text-center">
                                                 <Fuel className="size-3.5 text-blue-600 dark:text-blue-400" />
                                                 <span className="font-medium">
-                                                    {car.fuel_type}
+                                                    {group.fuel_type}
                                                 </span>
                                             </div>
                                         </div>
 
                                         {/* Features tags */}
-                                        {car.features &&
-                                            car.features.length > 0 && (
+                                        {group.features &&
+                                            group.features.length > 0 && (
                                                 <div className="mt-3 flex flex-wrap gap-1">
-                                                    {car.features
+                                                    {group.features
                                                         .slice(0, 3)
                                                         .map((feat) => (
                                                             <span
@@ -677,23 +851,29 @@ export default function Welcome({
                                                     </span>
                                                     <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400">
                                                         {formatRupiah(
-                                                            car.price_per_day,
+                                                            group.price_per_day,
                                                         )}
                                                     </p>
                                                 </div>
 
-                                                {car.status === 'available' ? (
+                                                {group.isAvailable ? (
                                                     <Button
                                                         type="button"
                                                         size="sm"
                                                         onClick={() =>
-                                                            openBookingModal(car)
+                                                            openBookingModal(
+                                                                group
+                                                                    .availableUnits[0] ||
+                                                                    group
+                                                                        .units[0],
+                                                            )
                                                         }
-                                                        className="bg-blue-600 font-semibold text-white hover:bg-blue-500"
+                                                        className="bg-blue-600 font-semibold text-white shadow-sm hover:bg-blue-500"
                                                     >
                                                         Sewa Sekarang
                                                     </Button>
-                                                ) : car.status === 'rented' ? (
+                                                ) : group.rentedUnits.length >
+                                                  0 ? (
                                                     <Button
                                                         type="button"
                                                         size="sm"
@@ -1087,8 +1267,9 @@ export default function Welcome({
 
             {/* Instant Booking Modal (Calon Pembeli -> Marketing) */}
             {selectedCar && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-                    <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-xs sm:p-4">
+                    <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+                        {/* Modal Header */}
                         <div className="flex items-start justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                             <div>
                                 <Badge className="mb-1 bg-blue-600 text-white">
@@ -1097,10 +1278,9 @@ export default function Welcome({
                                 <h3 className="text-xl font-bold">
                                     {selectedCar.name}
                                 </h3>
-                                <p className="text-xs text-slate-500">
-                                    Plat: {selectedCar.license_plate} •{' '}
-                                    {selectedCar.transmission} •{' '}
-                                    {selectedCar.seats} Kursi
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Model {selectedCar.brand} •{' '}
+                                    {selectedCar.category} • {selectedCar.year}
                                 </p>
                             </div>
                             <button
@@ -1112,13 +1292,159 @@ export default function Welcome({
                             </button>
                         </div>
 
+                        {/* Foto Mobil dengan Tombol Perbesar / Zoom */}
+                        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner dark:border-slate-800">
+                            <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-950">
+                                {selectedCar.image_url ? (
+                                    <img
+                                        src={selectedCar.image_url}
+                                        alt={selectedCar.name}
+                                        className="size-full cursor-pointer object-cover transition duration-300 hover:scale-102"
+                                        onClick={() => {
+                                            setIsZoomOpen(true);
+                                            setZoomScale(1);
+                                        }}
+                                        title="Klik untuk memperbesar foto (Zoom)"
+                                    />
+                                ) : (
+                                    <div className="flex size-full items-center justify-center text-slate-500">
+                                        <CarIcon className="size-16" />
+                                    </div>
+                                )}
+
+                                <div className="absolute top-3 left-3 flex gap-1.5">
+                                    <Badge
+                                        variant="outline"
+                                        className="border-slate-900/40 bg-slate-900/80 text-white backdrop-blur-sm"
+                                    >
+                                        {selectedCar.category}
+                                    </Badge>
+                                    <Badge
+                                        variant="outline"
+                                        className="border-slate-900/40 bg-white/95 font-bold text-slate-900 backdrop-blur-sm"
+                                    >
+                                        {selectedCar.year}
+                                    </Badge>
+                                </div>
+
+                                {selectedCar.image_url && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsZoomOpen(true);
+                                            setZoomScale(1);
+                                        }}
+                                        className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-black/75 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-md transition hover:bg-black/90"
+                                    >
+                                        <ZoomIn className="size-3.5" />
+                                        <span>🔍 Perbesar Foto (Zoom)</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Bagian Deskripsi Lengkap & Spesifikasi Kendaraan */}
+                        <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2 dark:border-slate-700">
+                                <h4 className="text-xs font-bold tracking-wider text-slate-800 uppercase dark:text-slate-200">
+                                    Deskripsi & Spesifikasi Unit
+                                </h4>
+                                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
+                                    {formatRupiah(selectedCar.price_per_day)} /
+                                    hari
+                                </span>
+                            </div>
+
+                            {/* Teks Deskripsi Lengkap yang dapat dibaca jelas */}
+                            <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                <p className="mb-1 font-semibold text-slate-900 dark:text-white">
+                                    Keterangan Mobil:
+                                </p>
+                                <p>
+                                    {selectedCar.description ||
+                                        'Unit kendaraan dalam kondisi prima, wangi, bersih, terawat, dan siap menemani perjalanan keluarga, bisnis, atau liburan Anda.'}
+                                </p>
+                            </div>
+
+                            {/* Grid 4 Spesifikasi Utama */}
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                                    <Gauge className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                    <div>
+                                        <p className="text-[10px] text-slate-500">
+                                            Transmisi
+                                        </p>
+                                        <p className="font-bold">
+                                            {selectedCar.transmission}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                                    <Users className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                    <div>
+                                        <p className="text-[10px] text-slate-500">
+                                            Kapasitas
+                                        </p>
+                                        <p className="font-bold">
+                                            {selectedCar.seats} Kursi
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                                    <Fuel className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                    <div>
+                                        <p className="text-[10px] text-slate-500">
+                                            Bahan Bakar
+                                        </p>
+                                        <p className="font-bold">
+                                            {selectedCar.fuel_type}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                                    <Calendar className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                    <div>
+                                        <p className="text-[10px] text-slate-500">
+                                            Tahun Unit
+                                        </p>
+                                        <p className="font-bold">
+                                            {selectedCar.year}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Daftar Fitur / Fasilitas Lengkap */}
+                            {selectedCar.features &&
+                                selectedCar.features.length > 0 && (
+                                    <div className="space-y-1.5 pt-1">
+                                        <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                                            Fasilitas & Fitur Terpasang:
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {selectedCar.features.map(
+                                                (feat) => (
+                                                    <span
+                                                        key={feat}
+                                                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                                    >
+                                                        <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+                                                        {feat}
+                                                    </span>
+                                                ),
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                        </div>
+
                         <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
-                            <strong>Alur Pemesanan:</strong> Isi nama, nomor
-                            WhatsApp, alamat, waktu peminjaman, dan lokasi di
+                            <strong>Alur Pemesanan:</strong> Isi formulir di
                             bawah ini. Pesanan Anda akan langsung masuk ke
                             notifikasi <strong>Marketing Elha Subang</strong>{' '}
                             dan tim kami akan segera menghubungi WhatsApp Anda
-                            untuk kelengkapan KTP, SIM, KK, serta pembayaran.
+                            untuk kelengkapan KTP, SIM, KK, serta konfirmasi
+                            pembayaran.
                         </div>
 
                         <form
@@ -1126,13 +1452,15 @@ export default function Welcome({
                             className="mt-4 space-y-4"
                         >
                             {/* Preferensi Nomor Plat Kendaraan */}
-                            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
                                 <div>
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                    <Label className="text-xs font-bold tracking-wider text-slate-700 uppercase dark:text-slate-300">
                                         Preferensi Nomor Plat Kendaraan
                                     </Label>
                                     <p className="text-[11px] text-slate-500">
-                                        Pilih apakah Anda menyerahkan penentuan plat ke Tim Marketing atau ingin memilih plat spesifik unit ini.
+                                        Pilih apakah Anda menyerahkan penentuan
+                                        plat ke Tim Marketing atau ingin memilih
+                                        plat spesifik unit ini.
                                     </p>
                                 </div>
 
@@ -1141,7 +1469,24 @@ export default function Welcome({
                                         type="button"
                                         onClick={() => {
                                             setPlateOption('free');
-                                            bookingForm.setData('plate_option', 'free');
+                                            bookingForm.setData(
+                                                'plate_option',
+                                                'free',
+                                            );
+                                            // Jika unit yang sedang aktif bukan available, alihkan ke unit available pertama
+                                            const avail =
+                                                currentModelUnits.find(
+                                                    (u) =>
+                                                        u.status ===
+                                                        'available',
+                                                );
+                                            if (avail) {
+                                                setSelectedCar(avail);
+                                                bookingForm.setData(
+                                                    'car_id',
+                                                    avail.id,
+                                                );
+                                            }
                                         }}
                                         className={`flex flex-col items-start rounded-xl border p-3 text-left transition ${
                                             plateOption === 'free'
@@ -1150,7 +1495,7 @@ export default function Welcome({
                                         }`}
                                     >
                                         <div className="flex items-center gap-1.5 text-xs font-bold">
-                                            <span>1. Nomor Plat Bebas</span>
+                                            <span>Nomor Plat Bebas</span>
                                             {plateOption === 'free' && (
                                                 <Badge className="bg-blue-600 px-1.5 py-0 text-[10px] text-white">
                                                     Dipilih
@@ -1158,7 +1503,8 @@ export default function Welcome({
                                             )}
                                         </div>
                                         <span className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                            Pilihkan unit paling prima & siap pakai oleh Marketing
+                                            Pilihkan unit paling prima & siap
+                                            pakai oleh Marketing
                                         </span>
                                     </button>
 
@@ -1166,7 +1512,10 @@ export default function Welcome({
                                         type="button"
                                         onClick={() => {
                                             setPlateOption('specific');
-                                            bookingForm.setData('plate_option', 'specific');
+                                            bookingForm.setData(
+                                                'plate_option',
+                                                'specific',
+                                            );
                                         }}
                                         className={`flex flex-col items-start rounded-xl border p-3 text-left transition ${
                                             plateOption === 'specific'
@@ -1175,7 +1524,9 @@ export default function Welcome({
                                         }`}
                                     >
                                         <div className="flex items-center gap-1.5 text-xs font-bold">
-                                            <span>2. Pilih Plat Nomor Sendiri</span>
+                                            <span>
+                                                Pilih Plat Nomor Sendiri
+                                            </span>
                                             {plateOption === 'specific' && (
                                                 <Badge className="bg-blue-600 px-1.5 py-0 text-[10px] text-white">
                                                     Dipilih
@@ -1183,54 +1534,173 @@ export default function Welcome({
                                             )}
                                         </div>
                                         <span className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                            Tentukan unit dengan nomor plat spesifik yang Anda inginkan
+                                            Tentukan unit dengan nomor plat
+                                            spesifik yang Anda inginkan
                                         </span>
                                     </button>
                                 </div>
 
                                 {plateOption === 'specific' ? (
-                                    <div className="space-y-1.5 border-t border-slate-200 pt-3 dark:border-slate-700">
-                                        <Label htmlFor="specific_plate_select" className="text-xs font-semibold">
-                                            Pilih Nomor Plat dari Jenis Mobil {selectedCar.name}:
+                                    <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+                                        <Label
+                                            htmlFor="specific_plate_select"
+                                            className="text-xs font-semibold"
+                                        >
+                                            Pilih Nomor Plat dari Jenis Mobil{' '}
+                                            {selectedCar.name}:
                                         </Label>
                                         <select
                                             id="specific_plate_select"
                                             value={selectedCar.id}
                                             onChange={(e) => {
-                                                const targetId = Number(e.target.value);
-                                                const found = cars.find((c) => c.id === targetId);
+                                                const targetId = Number(
+                                                    e.target.value,
+                                                );
+                                                const found = cars.find(
+                                                    (c) => c.id === targetId,
+                                                );
                                                 if (found) {
                                                     setSelectedCar(found);
                                                     bookingForm.setData({
                                                         ...bookingForm.data,
                                                         car_id: found.id,
-                                                        plate_option: 'specific',
+                                                        plate_option:
+                                                            'specific',
                                                     });
                                                 }
                                             }}
                                             className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 font-mono text-xs font-bold shadow-xs focus-visible:ring-1 focus-visible:ring-ring dark:bg-slate-900"
                                         >
-                                            {cars
-                                                .filter(
-                                                    (c) =>
-                                                        c.status === 'available' &&
-                                                        c.name.toLowerCase() ===
-                                                            selectedCar.name.toLowerCase(),
-                                                )
-                                                .map((c) => (
-                                                    <option key={c.id} value={c.id}>
-                                                        Plat: {c.license_plate}
-                                                    </option>
-                                                ))}
+                                            {currentModelUnits.map((c) => (
+                                                <option key={c.id} value={c.id}>
+                                                    Plat {c.license_plate} —{' '}
+                                                    {c.status === 'available'
+                                                        ? '🟢 Tersedia (Siap Jalan)'
+                                                        : c.status === 'rented'
+                                                          ? '🔵 Sedang Digunakan (Tidak Bisa Dipesan)'
+                                                          : '🟠 Dalam Perawatan (Bengkel)'}
+                                                </option>
+                                            ))}
                                         </select>
-                                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                                            ✓ Unit spesifik yang dipilih: <strong>{selectedCar.name} ({selectedCar.license_plate})</strong>
-                                        </p>
+
+                                        {/* Status Alert Dinamis Berdasarkan Plat yang Dipilih */}
+                                        {selectedCar.status === 'rented' ? (
+                                            <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/50 bg-rose-500/15 p-3.5 text-xs text-rose-900 dark:border-rose-500/40 dark:bg-rose-950/60 dark:text-rose-200">
+                                                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" />
+                                                <div>
+                                                    <p className="text-sm font-bold">
+                                                        Mobil dengan Plat Nomor
+                                                        Ini Sedang Digunakan
+                                                    </p>
+                                                    <p className="mt-1 text-xs leading-relaxed">
+                                                        Unit{' '}
+                                                        <strong>
+                                                            {selectedCar.name} (
+                                                            {
+                                                                selectedCar.license_plate
+                                                            }
+                                                            )
+                                                        </strong>{' '}
+                                                        saat ini sedang disewa
+                                                        dan digunakan di jalan
+                                                        oleh pelanggan lain,
+                                                        sehingga{' '}
+                                                        <strong>
+                                                            TIDAK DAPAT DIPESAN
+                                                        </strong>
+                                                        . Silakan pilih nomor
+                                                        plat lain yang berstatus{' '}
+                                                        <em>
+                                                            Tersedia (Siap
+                                                            Jalan)
+                                                        </em>{' '}
+                                                        atau beralih ke opsi{' '}
+                                                        <strong>
+                                                            Nomor Plat Bebas
+                                                        </strong>
+                                                        .
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : selectedCar.status ===
+                                          'maintenance' ? (
+                                            <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/50 bg-amber-500/15 p-3.5 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-200">
+                                                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                                                <div>
+                                                    <p className="text-sm font-bold">
+                                                        Mobil Sedang Dalam
+                                                        Perawatan
+                                                    </p>
+                                                    <p className="mt-1 text-xs leading-relaxed">
+                                                        Unit{' '}
+                                                        <strong>
+                                                            {selectedCar.name} (
+                                                            {
+                                                                selectedCar.license_plate
+                                                            }
+                                                            )
+                                                        </strong>{' '}
+                                                        saat ini sedang dalam
+                                                        jadwal servis rutin di
+                                                        bengkel dan belum siap
+                                                        jalan. Silakan pilih
+                                                        nomor plat lain yang
+                                                        tersedia.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-2.5 text-xs text-emerald-800 dark:text-emerald-300">
+                                                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                                <p className="font-medium">
+                                                    ✓ Unit spesifik siap
+                                                    dipesan:{' '}
+                                                    <strong>
+                                                        {selectedCar.name} (
+                                                        {
+                                                            selectedCar.license_plate
+                                                        }
+                                                        )
+                                                    </strong>
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
-                                    <p className="border-t border-slate-200 pt-2 text-[11px] text-blue-600 dark:border-slate-700 dark:text-blue-400">
-                                        ℹ️ Tim Marketing Elha akan menyiapkan unit mobil <strong>{selectedCar.name}</strong> dengan kondisi terbaik dan bahan bakar siap jalan saat konfirmasi.
-                                    </p>
+                                    <div className="space-y-2 border-t border-slate-200 pt-2 text-[11px] dark:border-slate-700">
+                                        {currentModelUnits.some(
+                                            (u) => u.status === 'available',
+                                        ) ? (
+                                            <div className="flex items-start gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 p-2.5 text-blue-800 dark:text-blue-300">
+                                                <Info className="mt-0.5 size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                                <p>
+                                                    Tim Marketing Elha akan
+                                                    menyiapkan armada{' '}
+                                                    <strong>
+                                                        {selectedCar.name}
+                                                    </strong>{' '}
+                                                    dengan kondisi paling prima,
+                                                    bersih, dan bahan bakar siap
+                                                    pakai untuk jadwal Anda.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-start gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-2.5 text-rose-800 dark:text-rose-300">
+                                                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                                                <p>
+                                                    Seluruh unit armada untuk
+                                                    model{' '}
+                                                    <strong>
+                                                        {selectedCar.name}
+                                                    </strong>{' '}
+                                                    saat ini sedang
+                                                    beroperasi/digunakan.
+                                                    Silakan pilih jenis mobil
+                                                    lainnya dari katalog.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -1498,20 +1968,166 @@ export default function Welcome({
                                 >
                                     Batal
                                 </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={bookingForm.processing}
-                                    className="gap-1.5 bg-blue-600 text-white hover:bg-blue-500"
-                                >
-                                    <CheckCircle2 className="size-4" />
-                                    <span>
-                                        {bookingForm.processing
-                                            ? 'Mengirim ke Marketing...'
-                                            : 'Pesan Mobil Sekarang'}
-                                    </span>
-                                </Button>
+
+                                {/* Tombol Pesan Mobil - Dinonaktifkan Jika Unit Sedang Digunakan / Perawatan */}
+                                {plateOption === 'specific' &&
+                                selectedCar.status === 'rented' ? (
+                                    <Button
+                                        type="button"
+                                        disabled
+                                        className="cursor-not-allowed gap-1.5 bg-slate-400 text-white opacity-80 dark:bg-slate-700"
+                                    >
+                                        <AlertTriangle className="size-4" />
+                                        <span>
+                                            ⛔ Unit Sedang Digunakan (Tidak
+                                            Dapat Dipesan)
+                                        </span>
+                                    </Button>
+                                ) : plateOption === 'specific' &&
+                                  selectedCar.status === 'maintenance' ? (
+                                    <Button
+                                        type="button"
+                                        disabled
+                                        className="cursor-not-allowed gap-1.5 bg-slate-400 text-white opacity-80 dark:bg-slate-700"
+                                    >
+                                        <AlertTriangle className="size-4" />
+                                        <span>
+                                            ⛔ Unit Dalam Perawatan (Tidak Dapat
+                                            Dipesan)
+                                        </span>
+                                    </Button>
+                                ) : plateOption === 'free' &&
+                                  !currentModelUnits.some(
+                                      (u) => u.status === 'available',
+                                  ) ? (
+                                    <Button
+                                        type="button"
+                                        disabled
+                                        className="cursor-not-allowed gap-1.5 bg-slate-400 text-white opacity-80 dark:bg-slate-700"
+                                    >
+                                        <AlertTriangle className="size-4" />
+                                        <span>
+                                            ⛔ Semua Unit Model Ini Sedang
+                                            Dipakai
+                                        </span>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="submit"
+                                        disabled={bookingForm.processing}
+                                        className="gap-1.5 bg-blue-600 text-white shadow-md hover:bg-blue-500"
+                                    >
+                                        <CheckCircle2 className="size-4" />
+                                        <span>
+                                            {bookingForm.processing
+                                                ? 'Mengirim ke Marketing...'
+                                                : 'Pesan Mobil Sekarang'}
+                                        </span>
+                                    </Button>
+                                )}
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Lightbox Modal: Perbesar Foto Mobil / Zoom Preview */}
+            {isZoomOpen && selectedCar?.image_url && (
+                <div
+                    className="fixed inset-0 z-[70] flex flex-col items-center justify-between bg-black/95 p-4 backdrop-blur-md"
+                    onClick={() => setIsZoomOpen(false)}
+                >
+                    {/* Top bar controls */}
+                    <div
+                        className="flex w-full max-w-5xl items-center justify-between border-b border-white/10 pb-3 text-white"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Badge className="bg-blue-600 text-white">
+                                Foto Detail
+                            </Badge>
+                            <span className="text-sm font-bold sm:text-base">
+                                {selectedCar.name}
+                            </span>
+                            <span className="font-mono text-xs text-slate-400">
+                                ({selectedCar.license_plate})
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                    setZoomScale((s) =>
+                                        Math.max(0.75, s - 0.25),
+                                    )
+                                }
+                                className="size-8 border-slate-700 bg-slate-800 p-0 text-white hover:bg-slate-700"
+                                title="Zoom Out"
+                            >
+                                <ZoomOut className="size-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setZoomScale(1)}
+                                className="h-8 border-slate-700 bg-slate-800 px-2.5 text-xs text-white hover:bg-slate-700"
+                                title="Reset Zoom"
+                            >
+                                <RotateCcw className="mr-1 size-3" />
+                                {Math.round(zoomScale * 100)}%
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                    setZoomScale((s) => Math.min(2.5, s + 0.25))
+                                }
+                                className="size-8 border-slate-700 bg-slate-800 p-0 text-white hover:bg-slate-700"
+                                title="Zoom In"
+                            >
+                                <ZoomIn className="size-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsZoomOpen(false)}
+                                className="ml-2 size-8 border-slate-700 bg-rose-600/80 p-0 text-white hover:bg-rose-600"
+                                title="Tutup"
+                            >
+                                <X className="size-4" />
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Centered Image with Zoom Scale */}
+                    <div
+                        className="flex w-full max-w-5xl flex-1 items-center justify-center overflow-auto p-2"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <img
+                            src={selectedCar.image_url}
+                            alt={selectedCar.name}
+                            style={{
+                                transform: `scale(${zoomScale})`,
+                                transition: 'transform 0.15s ease',
+                            }}
+                            className="max-h-[75vh] max-w-full origin-center rounded-xl object-contain shadow-2xl"
+                        />
+                    </div>
+
+                    {/* Footer instructions */}
+                    <div
+                        className="pt-2 text-center text-xs text-slate-400"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        Gunakan tombol zoom di kanan atas untuk
+                        memperbesar/memperkecil gambar, atau klik area luar
+                        untuk menutup.
                     </div>
                 </div>
             )}

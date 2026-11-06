@@ -1246,7 +1246,8 @@ export default function Dashboard({
                                                 </p>
                                                 <div className="mt-0.5 text-[11px] text-muted-foreground">
                                                     <span>
-                                                        {car.total_trips} trip selesai
+                                                        {car.total_trips} trip
+                                                        selesai
                                                     </span>
                                                 </div>
                                             </div>

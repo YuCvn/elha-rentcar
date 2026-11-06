@@ -94,8 +94,7 @@ export function BookingWorkflowModal({
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const totalDays = calculateDays(startDate, endDate);
-    const selectedCar =
-        cars.find((c) => c.id === selectedCarId) ?? booking.car;
+    const selectedCar = cars.find((c) => c.id === selectedCarId) ?? booking.car;
     const carRate = selectedCar?.price_per_day ?? booking.car_price_per_day;
     const driverRate = selectedCar?.with_driver_price ?? 150000;
     const finalTotal =
@@ -439,39 +438,68 @@ export function BookingWorkflowModal({
                                     Unit / Plat Diubah
                                 </Badge>
                             ) : (
-                                <Badge variant="outline" className="font-mono text-[11px]">
+                                <Badge
+                                    variant="outline"
+                                    className="font-mono text-[11px]"
+                                >
                                     Plat: {selectedCar?.license_plate}
                                 </Badge>
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="wf_car_select" className="text-xs text-muted-foreground">
-                                Pilih / Pindahkan Unit Kendaraan & Nomor Plat (Sesuai Permintaan Calon Pembeli):
+                            <Label
+                                htmlFor="wf_car_select"
+                                className="text-xs text-muted-foreground"
+                            >
+                                Pilih / Pindahkan Unit Kendaraan & Nomor Plat
+                                (Sesuai Permintaan Calon Pembeli):
                             </Label>
                             <select
                                 id="wf_car_select"
                                 value={selectedCarId}
                                 disabled={!canEdit}
-                                onChange={(e) => setSelectedCarId(Number(e.target.value))}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1 text-xs font-mono font-semibold shadow-xs focus-visible:ring-1 focus-visible:ring-ring"
+                                onChange={(e) =>
+                                    setSelectedCarId(Number(e.target.value))
+                                }
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1 font-mono text-xs font-semibold shadow-xs focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 {availableCarOptions.map((c) => (
                                     <option key={c.id} value={c.id}>
-                                        {c.license_plate} — {c.name} ({formatRupiah(c.price_per_day)}/hari) {c.id === booking.car_id ? '★ Unit Awal' : ''}
+                                        {c.license_plate} — {c.name} (
+                                        {formatRupiah(c.price_per_day)}/hari){' '}
+                                        {c.id === booking.car_id
+                                            ? '★ Unit Awal'
+                                            : ''}
                                     </option>
                                 ))}
                             </select>
 
                             <div className="flex flex-wrap items-center justify-between pt-1 text-xs">
                                 <span className="text-muted-foreground">
-                                    Mobil Terpilih: <strong className="text-foreground">{selectedCar?.name}</strong> • Plat:{' '}
-                                    <strong className="font-mono text-foreground">{selectedCar?.license_plate}</strong> • Tarif:{' '}
-                                    <strong className="text-foreground">{formatRupiah(carRate)}/hari</strong>
+                                    Mobil Terpilih:{' '}
+                                    <strong className="text-foreground">
+                                        {selectedCar?.name}
+                                    </strong>{' '}
+                                    • Plat:{' '}
+                                    <strong className="font-mono text-foreground">
+                                        {selectedCar?.license_plate}
+                                    </strong>{' '}
+                                    • Tarif:{' '}
+                                    <strong className="text-foreground">
+                                        {formatRupiah(carRate)}/hari
+                                    </strong>
                                 </span>
                                 {selectedCarId !== booking.car_id && (
                                     <span className="font-medium text-amber-600 dark:text-amber-400">
-                                        ⚠️ Pindah plat dari <strong>{booking.car?.license_plate}</strong> ➜ <strong>{selectedCar?.license_plate}</strong>
+                                        ⚠️ Pindah plat dari{' '}
+                                        <strong>
+                                            {booking.car?.license_plate}
+                                        </strong>{' '}
+                                        ➜{' '}
+                                        <strong>
+                                            {selectedCar?.license_plate}
+                                        </strong>
                                     </span>
                                 )}
                             </div>
