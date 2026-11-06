@@ -23,6 +23,7 @@ import {
     Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { BookingWorkflowModal } from '@/components/booking-workflow-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,16 @@ export default function Dashboard({
     const roleBadge = getUserRoleBadge(userRole);
 
     const handleQuickAdminConfirm = (bookingId: number) => {
+        if (userRole === 'owner') {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         router.patch(
             `/bookings/${bookingId}/admin-confirm`,
             {},
@@ -78,6 +89,24 @@ export default function Dashboard({
         status: string,
         paymentStatus: string,
     ) => {
+        if (userRole === 'owner') {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
+        if (status === 'ongoing' && paymentStatus !== 'paid') {
+            toast.warning(
+                'Mobil belum bisa dijalankan karena belum Lunas. Selesaikan pelunasan terlebih dahulu.',
+                { duration: 2000 },
+            );
+            return;
+        }
+
         router.patch(
             `/bookings/${bookingId}/status`,
             {
@@ -1007,25 +1036,213 @@ export default function Dashboard({
                     </>
                 )}
 
-                {/* Tabel Semua Transaksi & Status Workflow */}
+                {/* Daftar Transaksi (Mobile Card & Desktop Table) */}
                 <div className="grid gap-6 lg:grid-cols-12">
                     <div className="rounded-2xl border border-border/80 bg-card shadow-xs lg:col-span-8">
-                        <div className="flex items-center justify-between border-b border-border p-5">
+                        <div className="flex items-center justify-between border-b border-border p-4 sm:p-5">
                             <div>
                                 <h2 className="text-base font-bold">
-                                    Daftar Transaksi & Alur Verifikasi
+                                    Daftar Transaksi
                                 </h2>
-                                <p className="text-xs text-muted-foreground">
-                                    Alur: Guest Pesan → Marketing Verifikasi WA
-                                    (KTP/SIM/KK & DP/Lunas) → Admin Konfirmasi
-                                </p>
                             </div>
                             <Button asChild variant="outline" size="sm">
                                 <Link href="/bookings">Lihat Semua</Link>
                             </Button>
                         </div>
 
-                        <div className="overflow-x-auto">
+                        {/* Tampilan Khusus Mobile / Layar Responsif (Card View) */}
+                        <div className="divide-y divide-border md:hidden">
+                            {recentBookings.length === 0 ? (
+                                <div className="p-6 text-center text-xs text-muted-foreground">
+                                    Belum ada data transaksi.
+                                </div>
+                            ) : (
+                                recentBookings.map((booking) => {
+                                    const bBadge = getBookingStatusBadge(
+                                        booking.status,
+                                    );
+                                    const pBadge = getPaymentStatusBadge(
+                                        booking.payment_status,
+                                    );
+
+                                    return (
+                                        <div
+                                            key={booking.id}
+                                            className="space-y-3 p-4"
+                                        >
+                                            {/* Header Card: Kode Booking & Status Badges */}
+                                            <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                                <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                                                    {booking.booking_code}
+                                                </span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`${bBadge.className} px-1.5 py-0 text-[10px]`}
+                                                    >
+                                                        {bBadge.label}
+                                                    </Badge>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`${pBadge.className} px-1.5 py-0 text-[10px]`}
+                                                    >
+                                                        {pBadge.label}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+
+                                            {/* Data Pembeli & Mobil */}
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                        Calon Pembeli
+                                                    </p>
+                                                    <p className="truncate font-semibold text-foreground">
+                                                        {booking.customer_name}
+                                                    </p>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        {booking.customer_phone}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                        Unit & Jadwal
+                                                    </p>
+                                                    <p className="truncate font-semibold text-blue-600 dark:text-blue-400">
+                                                        {booking.car?.name ??
+                                                            '-'}
+                                                    </p>
+                                                    <p className="truncate text-[11px] text-muted-foreground">
+                                                        {booking.start_date} (
+                                                        {booking.total_days} hr)
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Dokumen Verifikasi (KTP, SIM, KK) */}
+                                            <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs">
+                                                <p className="mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                    Data Verifikasi
+                                                </p>
+                                                {booking.customer_ktp_number ? (
+                                                    <div className="space-y-0.5 text-[11px]">
+                                                        <p>
+                                                            <span className="text-muted-foreground">
+                                                                KTP:
+                                                            </span>{' '}
+                                                            <span className="font-mono font-semibold">
+                                                                {
+                                                                    booking.customer_ktp_number
+                                                                }
+                                                            </span>
+                                                        </p>
+                                                        <p>
+                                                            <span className="text-muted-foreground">
+                                                                SIM A:
+                                                            </span>{' '}
+                                                            <span className="font-mono font-semibold">
+                                                                {booking.customer_sim_number ||
+                                                                    '-'}
+                                                            </span>
+                                                        </p>
+                                                        <p>
+                                                            <span className="text-muted-foreground">
+                                                                KK:
+                                                            </span>{' '}
+                                                            <span className="font-mono font-semibold">
+                                                                {booking.customer_kk_number ||
+                                                                    '-'}
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                                                        Belum diinput Marketing
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Footer Card: Total Tagihan & Tombol Aksi */}
+                                            <div className="flex items-center justify-between border-t border-border/50 pt-2.5">
+                                                <div>
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        Total Tagihan
+                                                    </span>
+                                                    <p className="text-sm font-extrabold text-foreground">
+                                                        {formatRupiah(
+                                                            booking.total_price,
+                                                        )}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-1.5">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 px-2.5 text-xs"
+                                                        onClick={() =>
+                                                            setActiveBookingModal(
+                                                                booking,
+                                                            )
+                                                        }
+                                                    >
+                                                        {userRole ===
+                                                        'marketing'
+                                                            ? 'Input Laporan'
+                                                            : 'Detail / Bukti'}
+                                                    </Button>
+
+                                                    {/* Tombol aksi Admin (Owner dan Marketing tidak melihat tombol ini) */}
+                                                    {userRole === 'admin' &&
+                                                        booking.status ===
+                                                            'waiting_admin' && (
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-8 gap-1 bg-blue-600 px-2.5 text-xs text-white hover:bg-blue-500"
+                                                                onClick={() =>
+                                                                    handleQuickAdminConfirm(
+                                                                        booking.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <CheckCircle2 className="size-3.5" />
+                                                                <span>
+                                                                    Konfirmasi
+                                                                </span>
+                                                            </Button>
+                                                        )}
+
+                                                    {userRole === 'admin' &&
+                                                        booking.status ===
+                                                            'confirmed' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 gap-1 px-2.5 text-xs text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                                                                onClick={() =>
+                                                                    handleQuickStatus(
+                                                                        booking.id,
+                                                                        'ongoing',
+                                                                        booking.payment_status,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <PlayCircle className="size-3.5" />
+                                                                <span>
+                                                                    Jalan
+                                                                </span>
+                                                            </Button>
+                                                        )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Tampilan Desktop Table (Layar md ke atas) */}
+                        <div className="hidden overflow-x-auto md:block">
                             <table className="w-full text-left text-sm">
                                 <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground uppercase">
                                     <tr>
@@ -1148,8 +1365,8 @@ export default function Dashboard({
                                                                 : 'Detail / Bukti'}
                                                         </Button>
 
-                                                        {userRole !==
-                                                            'marketing' &&
+                                                        {/* Tombol Aksi Operasional Khusus Admin Operasional (Bukan Owner, Bukan Marketing) */}
+                                                        {userRole === 'admin' &&
                                                             booking.status ===
                                                                 'waiting_admin' && (
                                                                 <Button
@@ -1168,14 +1385,13 @@ export default function Dashboard({
                                                                 </Button>
                                                             )}
 
-                                                        {userRole !==
-                                                            'marketing' &&
+                                                        {userRole === 'admin' &&
                                                             booking.status ===
                                                                 'confirmed' && (
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="h-7 gap-1 px-2 text-xs text-indigo-600"
+                                                                    className="h-7 gap-1 px-2 text-xs text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
                                                                     onClick={() =>
                                                                         handleQuickStatus(
                                                                             booking.id,

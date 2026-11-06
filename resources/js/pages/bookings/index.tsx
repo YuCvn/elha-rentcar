@@ -17,6 +17,7 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { BookingWorkflowModal } from '@/components/booking-workflow-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -137,6 +138,16 @@ export default function BookingsIndex({
         status: BookingStatus,
         paymentStatus: PaymentStatus,
     ) => {
+        if (userRole === 'owner') {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         router.patch(
             `/bookings/${bookingId}/status`,
             {
@@ -148,6 +159,16 @@ export default function BookingsIndex({
     };
 
     const handleAdminConfirm = (bookingId: number) => {
+        if (userRole === 'owner') {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         router.patch(
             `/bookings/${bookingId}/admin-confirm`,
             {},
@@ -156,6 +177,16 @@ export default function BookingsIndex({
     };
 
     const handleDelete = (booking: Booking) => {
+        if (userRole === 'owner') {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         if (
             window.confirm(
                 `Hapus pesanan ${booking.booking_code} atas nama ${booking.customer_name}?`,

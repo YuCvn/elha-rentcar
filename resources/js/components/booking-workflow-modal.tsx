@@ -18,6 +18,7 @@ import {
     X,
 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,6 +121,16 @@ export function BookingWorkflowModal({
     );
 
     const handleMarketingSubmit = (targetPaymentStatus: 'dp' | 'paid') => {
+        if (isOwnerRole) {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         const cleanKtp = ktpNumber.trim().replace(/\D/g, '');
         const cleanSim = simNumber.trim().replace(/\D/g, '');
         const cleanKk = kkNumber.trim().replace(/\D/g, '');
@@ -208,6 +219,16 @@ export function BookingWorkflowModal({
     };
 
     const handleAdminMarkPaid = () => {
+        if (isOwnerRole) {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         setIsSubmitting(true);
         router.patch(
             `/bookings/${booking.id}/status`,
@@ -226,6 +247,16 @@ export function BookingWorkflowModal({
     };
 
     const handleAdminDispatchOngoing = () => {
+        if (isOwnerRole) {
+            toast.error(
+                'Owner tidak bisa merubah ini. Akses Anda adalah Read-Only.',
+                {
+                    duration: 1500,
+                },
+            );
+            return;
+        }
+
         if (booking.payment_status !== 'paid') {
             window.alert(
                 'Mobil belum dapat dijalankan karena baru DP (Belum Lunas). Harap selesaikan pelunasan tagihan terlebih dahulu.',
