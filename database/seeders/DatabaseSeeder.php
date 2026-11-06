@@ -91,7 +91,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'SUV premium tangguh dengan mesin diesel bertenaga, kabin mewah berbalut kulit, sunroof, dan kenyamanan suspensi terbaik.',
                 'features' => ['Sunroof', 'Leather Seats', 'Mesin Diesel 2.4 MIVEC Turbo', 'Kamera 360', 'AC Dual Zone'],
                 'rating' => 4.98,
-                'total_trips' => 52,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1777 ELH',
@@ -109,7 +109,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Tampilan sporty gagah khas GR Sport dengan performa mesin 2.8L turbo diesel bertenaga dan fitur keselamatan lengkap.',
                 'features' => ['Bodykit GR Sport', 'Power Backdoor Kick Sensor', 'JBL Audio', 'Wireless Charger', 'Surround Monitor'],
                 'rating' => 4.96,
-                'total_trips' => 46,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1420 ELH',
@@ -127,7 +127,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Rajanya mobil keluarga Indonesia, kabin super hening, suspensi lembut, dan mesin diesel 2GD yang irit serta bertenaga.',
                 'features' => ['AC Double Blower', 'Kabin Lega', 'Suspensi Empuk', 'Head Unit Layar Sentuh', 'Eco & Power Mode'],
                 'rating' => 4.97,
-                'total_trips' => 88,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1824 ELH',
@@ -145,7 +145,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'MPV modern dengan lampu LED berdesain dinamis, rem parkir elektrik dengan auto hold, dan fitur keselamatan mutakhir.',
                 'features' => ['Electric Parking Brake', 'Wireless Charger', 'Apple CarPlay & Android Auto', 'Rear Seat Monitor', 'Ambient Light'],
                 'rating' => 4.94,
-                'total_trips' => 73,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1102 ELH',
@@ -163,7 +163,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Pilihan andalan keluarga untuk perjalanan dalam maupun luar kota Subang, hemat bahan bakar dan mudah dikendarai.',
                 'features' => ['Transmisi CVT Halus', 'Sofa Mode Kabin', 'Dual SRS Airbags', 'Sensor Parkir', 'USB Port di Setiap Baris'],
                 'rating' => 4.92,
-                'total_trips' => 95,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1902 ELH',
@@ -181,7 +181,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Desain futuristik dengan ground clearance tinggi, suspensi empuk, dan kesenyapan kabin terdepan di kelasnya.',
                 'features' => ['Cruise Control', 'Wireless Charger', 'Keyless Operating System', 'Audio Steering Switch', 'Banyak Tempat Penyimpanan'],
                 'rating' => 4.95,
-                'total_trips' => 61,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1555 ELH',
@@ -199,7 +199,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'SUV tangguh penggerak roda belakang (RWD) dengan ground clearance tinggi, sangat pas untuk jalanan tanjakan di Subang Selatan.',
                 'features' => ['Penggerak RWD Tangguh', '6 Airbags', 'Auto A/C Digital', 'Smart Start/Stop', 'Velg 17 Inci GR Sport'],
                 'rating' => 4.91,
-                'total_trips' => 54,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1633 ELH',
@@ -217,7 +217,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Sahabat petualang dengan kabin 7 penumpang, kamera 360, dan tampilan eksterior putih bersih elegan.',
                 'features' => ['Around View Monitor 360', 'Keyless Entry', 'LED Headlamp', 'Kabin Lega 7 Seat', 'Hemat BBM'],
                 'rating' => 4.90,
-                'total_trips' => 48,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1388 ELH',
@@ -235,7 +235,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Hatchback berjiwa muda dengan warna atraktif Citrus Yellow, handling gesit, paddle shift, dan audio berkualitas.',
                 'features' => ['Paddle Shift', 'Drive Mode Sport/Eco', '7 Airbags', 'Layar Sentuh 7 Inci', 'Desain GR Sport Eksklusif'],
                 'rating' => 4.93,
-                'total_trips' => 39,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1205 ELH',
@@ -253,7 +253,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Compact SUV bermesin 1.000cc Turbo responsif dengan warna merah two-tone atraktif dan bagasi bertingkat yang fleksibel.',
                 'features' => ['Mesin 1.0L Turbo', 'Paddle Shift', 'Digital Speedometer 7 Inci', 'Vehicle Stability Control', 'Hill Start Assist'],
                 'rating' => 4.92,
-                'total_trips' => 44,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1088 ELH',
@@ -271,7 +271,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'City car terpopuler yang lincah, sangat hemat bensin, dan mudah parkir untuk keliling kota Subang dan sekitarnya.',
                 'features' => ['Sangat Irit BBM', 'Transmisi CVT Halus', 'Audio Bluetooth', 'Sensor Parkir', 'AC Digital'],
                 'rating' => 4.91,
-                'total_trips' => 112,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1414 ELH',
@@ -289,7 +289,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Low MPV dengan tenaga mesin 1.5L i-VTEC terbesar di kelasnya, bagasi luas, dan posisi duduk nyaman layaknya sedan.',
                 'features' => ['Mesin 1.5L i-VTEC 118 PS', 'Transmisi Manual Responsif', 'AC Double Blower', 'Dual SRS Airbags', 'Bagasi Fleksibel'],
                 'rating' => 4.88,
-                'total_trips' => 67,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1321 ELH',
@@ -307,7 +307,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Pilihan sewa mobil paling hemat dan ekonomis untuk 7 penumpang, cocok untuk operasional keluarga maupun perjalanan dinas.',
                 'features' => ['Tarif Super Hemat', 'Kapasitas 7 Kursi', 'AC Dingin', 'Konsumsi BBM 18-20 km/L', 'Sensor Mundur'],
                 'rating' => 4.86,
-                'total_trips' => 93,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1244 ELH',
@@ -325,7 +325,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Mobil 7 seater terjangkau dengan perawatan resmi Toyota, kabin nyaman, dan efisiensi bahan bakar yang luar biasa.',
                 'features' => ['Sangat Ekonomis', 'Audio Touchscreen', 'Power Window 4 Pintu', 'Rear Air Circulator', 'Dual SRS Airbags'],
                 'rating' => 4.87,
-                'total_trips' => 84,
+                'total_trips' => 0,
             ],
             [
                 'license_plate' => 'T 1007 ELH',
@@ -343,7 +343,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Sedan prestisius dengan kenyamanan berkendara mewah, kabin kedap suara, jok ergonomis, dan tampilan eksekutif elegan.',
                 'features' => ['Kenyamanan Kelas Sedan', 'Paddle Shift', 'Layar Sentuh 8 Inci', 'Remote Engine Start', '8 Speakers Audio'],
                 'rating' => 4.95,
-                'total_trips' => 35,
+                'total_trips' => 0,
             ],
         ];
 

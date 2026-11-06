@@ -16,7 +16,6 @@ import {
     Phone,
     PlayCircle,
     ShieldCheck,
-    Star,
     TrendingUp,
     UserPlus,
     Users,
@@ -1245,11 +1244,9 @@ export default function Dashboard({
                                                     )}
                                                     /hr
                                                 </p>
-                                                <div className="mt-0.5 flex items-center gap-1 text-[11px] text-amber-500">
-                                                    <Star className="size-3 fill-amber-400" />
+                                                <div className="mt-0.5 text-[11px] text-muted-foreground">
                                                     <span>
-                                                        {car.rating} (
-                                                        {car.total_trips} trip)
+                                                        {car.total_trips} trip selesai
                                                     </span>
                                                 </div>
                                             </div>

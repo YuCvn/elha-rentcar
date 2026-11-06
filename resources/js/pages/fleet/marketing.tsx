@@ -6,7 +6,6 @@ import {
     Fuel,
     Gauge,
     Search,
-    Star,
     Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -175,9 +174,8 @@ export default function MarketingFleet({ cars, stats }: MarketingFleetProps) {
                                                 {car.brand} • {car.category} (
                                                 {car.year})
                                             </span>
-                                            <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                                                <Star className="size-3 fill-amber-500 text-amber-500" />
-                                                {car.rating}
+                                            <span className="text-xs text-muted-foreground">
+                                                {car.total_trips} trip
                                             </span>
                                         </div>
 

@@ -307,15 +307,15 @@ export default function Welcome({
                                     </div>
                                     <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur">
                                         <p className="text-2xl font-bold text-amber-400">
-                                            ★ {stats.avg_rating}
+                                            100%
                                         </p>
                                         <p className="text-xs text-slate-300">
-                                            Rating Pelanggan
+                                            Unit Terawat & Legal
                                         </p>
                                     </div>
                                     <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur">
                                         <p className="text-2xl font-bold text-cyan-300">
-                                            {stats.total_trips}+
+                                            {stats.total_trips} Trip
                                         </p>
                                         <p className="text-xs text-slate-300">
                                             Perjalanan Sukses
@@ -523,10 +523,8 @@ export default function Welcome({
                                             <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
                                                 {car.license_plate}
                                             </span>
-                                            <span className="inline-flex items-center gap-1 font-medium text-amber-500">
-                                                <Star className="size-3.5 fill-amber-400 text-amber-400" />
-                                                {car.rating} ({car.total_trips}{' '}
-                                                trip)
+                                            <span className="font-medium text-slate-500 dark:text-slate-400">
+                                                {car.total_trips} trip
                                             </span>
                                         </div>
 
