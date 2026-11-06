@@ -1,0 +1,24 @@
+{
+    "name": "Elha RentCar - Sewa Mobil & Armada",
+    "short_name": "Elha RentCar",
+    "description": "Aplikasi Rental Mobil Lepas Kunci & Dengan Sopir - Siap Web & Android",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#090d16",
+    "theme_color": "#2563eb",
+    "categories": ["travel", "transportation", "business"],
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ]
+}
