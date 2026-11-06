@@ -34,6 +34,7 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCar, setEditingCar] = useState<Car | null>(null);
+    const [isEditingPlateText, setIsEditingPlateText] = useState(false);
     const [isSameModelUnit, setIsSameModelUnit] = useState(false);
     const [selectedModelName, setSelectedModelName] = useState('');
 
@@ -65,6 +66,18 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
             a.name.localeCompare(b.name),
         );
     }, [cars]);
+
+    const editingModelUnits = useMemo(() => {
+        if (!editingCar || !editingCar.name) return [];
+        const carList = Array.isArray(cars) ? cars : [];
+        return carList.filter(
+            (c) =>
+                c &&
+                c.name &&
+                c.name.trim().toLowerCase() ===
+                    editingCar.name.trim().toLowerCase(),
+        );
+    }, [cars, editingCar?.name]);
 
     const filteredCars = useMemo(() => {
         return cars.filter((car) => {
@@ -119,6 +132,7 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
 
     const openCreateModal = () => {
         setEditingCar(null);
+        setIsEditingPlateText(false);
         setIsSameModelUnit(false);
         setSelectedModelName('');
         form.setData({
@@ -143,8 +157,31 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
         setIsModalOpen(true);
     };
 
+    const handleSwitchEditingUnit = (targetCar: Car) => {
+        setEditingCar(targetCar);
+        setIsEditingPlateText(false);
+        form.setData({
+            name: targetCar.name,
+            brand: targetCar.brand,
+            category: targetCar.category,
+            license_plate: targetCar.license_plate,
+            year: targetCar.year,
+            transmission: targetCar.transmission,
+            fuel_type: targetCar.fuel_type,
+            seats: targetCar.seats,
+            price_per_day: targetCar.price_per_day,
+            with_driver_price: targetCar.with_driver_price,
+            status: targetCar.status,
+            image_url: targetCar.image_url ?? '',
+            description: targetCar.description ?? '',
+            features_text: (targetCar.features ?? []).join(', '),
+        });
+        form.clearErrors();
+    };
+
     const openEditModal = (car: Car) => {
         setEditingCar(car);
+        setIsEditingPlateText(false);
         setIsSameModelUnit(false);
         setSelectedModelName('');
         form.setData({
@@ -397,7 +434,7 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                         <div className="flex items-center justify-between border-b border-border pb-4">
                             <h2 className="text-lg font-bold">
                                 {editingCar
-                                    ? `Edit Armada: ${editingCar.name}`
+                                    ? `Edit Armada: ${editingCar.name} (${editingCar.license_plate})`
                                     : 'Tambah Armada Mobil Baru'}
                             </h2>
                             <button
@@ -499,22 +536,130 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                                 </div>
 
                                 <div className="space-y-1.5 sm:col-span-2">
-                                    <Label htmlFor="license_plate">
-                                        Plat Nomor Kendaraan (Unit Baru) *
-                                    </Label>
-                                    <Input
-                                        id="license_plate"
-                                        required
-                                        value={form.data.license_plate}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'license_plate',
-                                                e.target.value.toUpperCase(),
-                                            )
-                                        }
-                                        placeholder="Contoh: T 1322 ELH"
-                                        className="font-mono font-bold tracking-wider uppercase"
-                                    />
+                                    {editingCar ? (
+                                        <>
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="editing_unit_select">
+                                                    Pilihan Plat Nomor Kendaraan
+                                                    ({editingModelUnits.length}{' '}
+                                                    Unit Terdaftar) *
+                                                </Label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setIsEditingPlateText(
+                                                            !isEditingPlateText,
+                                                        )
+                                                    }
+                                                    className="text-xs font-semibold text-blue-600 hover:text-blue-500 hover:underline dark:text-blue-400"
+                                                >
+                                                    {isEditingPlateText
+                                                        ? 'Kembali ke Pilihan Dropdown'
+                                                        : '✏️ Ganti / Koreksi Nomor Plat'}
+                                                </button>
+                                            </div>
+
+                                            {!isEditingPlateText ? (
+                                                <div className="space-y-1.5">
+                                                    <select
+                                                        id="editing_unit_select"
+                                                        value={editingCar.id}
+                                                        onChange={(e) => {
+                                                            const target =
+                                                                editingModelUnits.find(
+                                                                    (u) =>
+                                                                        u.id ===
+                                                                        Number(
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        ),
+                                                                );
+                                                            if (target) {
+                                                                handleSwitchEditingUnit(
+                                                                    target,
+                                                                );
+                                                            }
+                                                        }}
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1 font-mono text-sm font-bold shadow-xs focus-visible:ring-1 focus-visible:ring-ring"
+                                                    >
+                                                        {editingModelUnits.map(
+                                                            (u) => (
+                                                                <option
+                                                                    key={u.id}
+                                                                    value={u.id}
+                                                                >
+                                                                    {
+                                                                        u.license_plate
+                                                                    }{' '}
+                                                                    —{' '}
+                                                                    {u.status ===
+                                                                    'available'
+                                                                        ? 'Tersedia'
+                                                                        : u.status ===
+                                                                            'rented'
+                                                                          ? 'Sedang Disewa (On Road)'
+                                                                          : 'Servis / Perawatan'}
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        Pilih nomor plat di atas
+                                                        untuk berpindah unit
+                                                        armada model ini yang
+                                                        ingin diedit atau diubah
+                                                        statusnya.
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1.5">
+                                                    <Input
+                                                        id="license_plate"
+                                                        required
+                                                        value={
+                                                            form.data
+                                                                .license_plate
+                                                        }
+                                                        onChange={(e) =>
+                                                            form.setData(
+                                                                'license_plate',
+                                                                e.target.value.toUpperCase(),
+                                                            )
+                                                        }
+                                                        placeholder="Contoh: T 1985 ELH"
+                                                        className="font-mono font-bold tracking-wider uppercase"
+                                                        autoFocus
+                                                    />
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        Ketik nomor plat baru
+                                                        untuk unit ini lalu klik
+                                                        Simpan Perubahan.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Label htmlFor="license_plate">
+                                                Plat Nomor Kendaraan (Unit Baru)
+                                                *
+                                            </Label>
+                                            <Input
+                                                id="license_plate"
+                                                required
+                                                value={form.data.license_plate}
+                                                onChange={(e) =>
+                                                    form.setData(
+                                                        'license_plate',
+                                                        e.target.value.toUpperCase(),
+                                                    )
+                                                }
+                                                placeholder="Contoh: T 1322 ELH"
+                                                className="font-mono font-bold tracking-wider uppercase"
+                                            />
+                                        </>
+                                    )}
                                     <InputError
                                         message={form.errors.license_plate}
                                     />
