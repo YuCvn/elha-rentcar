@@ -1095,7 +1095,7 @@ export default function Welcome({
                                 {plateOption === 'specific' ? (
                                     <div className="space-y-1.5 border-t border-slate-200 pt-3 dark:border-slate-700">
                                         <Label htmlFor="specific_plate_select" className="text-xs font-semibold">
-                                            Pilih Unit Plat Nomor yang Tersedia:
+                                            Pilih Nomor Plat dari Jenis Mobil {selectedCar.name}:
                                         </Label>
                                         <select
                                             id="specific_plate_select"
@@ -1115,14 +1115,19 @@ export default function Welcome({
                                             className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 font-mono text-xs font-bold shadow-xs focus-visible:ring-1 focus-visible:ring-ring dark:bg-slate-900"
                                         >
                                             {cars
-                                                .filter((c) => c.status === 'available')
+                                                .filter(
+                                                    (c) =>
+                                                        c.status === 'available' &&
+                                                        c.name.toLowerCase() ===
+                                                            selectedCar.name.toLowerCase(),
+                                                )
                                                 .map((c) => (
                                                     <option key={c.id} value={c.id}>
-                                                        {c.license_plate} — {c.name} ({formatRupiah(c.price_per_day)}/hari)
+                                                        Plat: {c.license_plate} (Tahun {c.year} • {c.transmission})
                                                     </option>
                                                 ))}
                                         </select>
-                                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                                             ✓ Unit spesifik yang dipilih: <strong>{selectedCar.name} ({selectedCar.license_plate})</strong>
                                         </p>
                                     </div>

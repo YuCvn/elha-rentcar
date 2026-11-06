@@ -34,6 +34,8 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCar, setEditingCar] = useState<Car | null>(null);
+    const [isSameModelUnit, setIsSameModelUnit] = useState(false);
+    const [selectedModelName, setSelectedModelName] = useState('');
 
     const form = useForm({
         name: '',
@@ -52,6 +54,18 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
         features_text: 'AC Double Blower, Bluetooth Audio, Kamera Parkir',
     });
 
+    const existingModels = useMemo(() => {
+        const map = new Map<string, Car>();
+        cars.forEach((car) => {
+            if (!map.has(car.name)) {
+                map.set(car.name, car);
+            }
+        });
+        return Array.from(map.values()).sort((a, b) =>
+            a.name.localeCompare(b.name),
+        );
+    }, [cars]);
+
     const filteredCars = useMemo(() => {
         return cars.filter((car) => {
             const matchesSearch =
@@ -66,8 +80,47 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
         });
     }, [cars, search, statusFilter]);
 
+    const applyExistingModel = (target: Car) => {
+        form.setData({
+            ...form.data,
+            name: target.name,
+            brand: target.brand,
+            category: target.category,
+            year: target.year,
+            transmission: target.transmission,
+            fuel_type: target.fuel_type,
+            seats: target.seats,
+            price_per_day: target.price_per_day,
+            with_driver_price: target.with_driver_price,
+            image_url: target.image_url ?? '',
+            description: target.description ?? '',
+            features_text: (target.features ?? []).join(', '),
+        });
+    };
+
+    const handleToggleSameModel = (checked: boolean) => {
+        setIsSameModelUnit(checked);
+        if (checked && existingModels.length > 0) {
+            const first = existingModels[0];
+            setSelectedModelName(first.name);
+            applyExistingModel(first);
+        } else {
+            setSelectedModelName('');
+        }
+    };
+
+    const handleSelectModel = (modelName: string) => {
+        setSelectedModelName(modelName);
+        const target = existingModels.find((m) => m.name === modelName);
+        if (target) {
+            applyExistingModel(target);
+        }
+    };
+
     const openCreateModal = () => {
         setEditingCar(null);
+        setIsSameModelUnit(false);
+        setSelectedModelName('');
         form.setData({
             name: '',
             brand: 'Toyota',
@@ -92,6 +145,8 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
 
     const openEditModal = (car: Car) => {
         setEditingCar(car);
+        setIsSameModelUnit(false);
+        setSelectedModelName('');
         form.setData({
             name: car.name,
             brand: car.brand,
@@ -358,26 +413,100 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                             onSubmit={handleSubmit}
                             className="mt-4 space-y-4"
                         >
+                            {/* Checkbox Tambah Unit Satu Merk Mobil */}
+                            {!editingCar && (
+                                <div className="flex items-center gap-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5">
+                                    <input
+                                        type="checkbox"
+                                        id="isSameModelUnit"
+                                        checked={isSameModelUnit}
+                                        onChange={(e) =>
+                                            handleToggleSameModel(
+                                                e.target.checked,
+                                            )
+                                        }
+                                        className="size-4 rounded border-border text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <label
+                                        htmlFor="isSameModelUnit"
+                                        className="cursor-pointer text-xs font-semibold select-none text-foreground"
+                                    >
+                                        Tambah Unit satu merk mobil (Pilih dari model armada yang sudah ada, tanpa perlu mengisi manual)
+                                    </label>
+                                </div>
+                            )}
+
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="name">
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <Label
+                                        htmlFor={
+                                            isSameModelUnit && !editingCar
+                                                ? 'model_dropdown'
+                                                : 'name'
+                                        }
+                                    >
                                         Nama Lengkap Mobil *
                                     </Label>
-                                    <Input
-                                        id="name"
-                                        required
-                                        value={form.data.name}
-                                        onChange={(e) =>
-                                            form.setData('name', e.target.value)
-                                        }
-                                        placeholder="Contoh: Toyota Innova Zenix Hybrid"
-                                    />
+                                    {isSameModelUnit && !editingCar ? (
+                                        <div className="space-y-1.5">
+                                            <select
+                                                id="model_dropdown"
+                                                required
+                                                value={selectedModelName}
+                                                onChange={(e) =>
+                                                    handleSelectModel(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1 text-sm font-semibold shadow-xs focus-visible:ring-1 focus-visible:ring-ring"
+                                            >
+                                                <option value="" disabled>
+                                                    -- Pilih Model Armada yang
+                                                    Sudah Ada --
+                                                </option>
+                                                {existingModels.map((m) => (
+                                                    <option
+                                                        key={m.id}
+                                                        value={m.name}
+                                                    >
+                                                        {m.name} ({m.brand} •{' '}
+                                                        {m.transmission} •{' '}
+                                                        {formatRupiah(
+                                                            m.price_per_day,
+                                                        )}
+                                                        /hari)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                                ✓ Spesifikasi & tarif model{' '}
+                                                <strong>
+                                                    {selectedModelName}
+                                                </strong>{' '}
+                                                otomatis disalin. Masukkan nomor
+                                                plat baru di bawah ini.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            id="name"
+                                            required
+                                            value={form.data.name}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'name',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Contoh: Toyota Innova Zenix Hybrid"
+                                        />
+                                    )}
                                     <InputError message={form.errors.name} />
                                 </div>
 
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 sm:col-span-2">
                                     <Label htmlFor="license_plate">
-                                        Plat Nomor Kendaraan *
+                                        Plat Nomor Kendaraan (Unit Baru) *
                                     </Label>
                                     <Input
                                         id="license_plate"
@@ -389,7 +518,8 @@ export default function FleetIndex({ cars, stats }: FleetPageProps) {
                                                 e.target.value.toUpperCase(),
                                             )
                                         }
-                                        placeholder="Contoh: B 1234 ELH"
+                                        placeholder="Contoh: T 1322 ELH"
+                                        className="font-mono font-bold tracking-wider uppercase"
                                     />
                                     <InputError
                                         message={form.errors.license_plate}
